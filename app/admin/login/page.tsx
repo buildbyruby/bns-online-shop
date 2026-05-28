@@ -28,7 +28,7 @@ export default function AdminLogin() {
   const handleForgotPassword = async (e: any) => {
     e.preventDefault();
     setResetLoading(true);
-    const email = `${resetPhone}@admin.bns.com`;
+    const email = resetPhone;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/admin/reset-password`,
     });
@@ -47,7 +47,7 @@ export default function AdminLogin() {
           <div className="space-y-2">
             <Shield size={32} />
             <h1 className="text-2xl font-black uppercase tracking-tighter italic">Reset Password</h1>
-            <p className="text-[10px] text-zinc-500">Enter your phone number and we'll send a reset link to your registered email.</p>
+            <p className="text-[10px] text-zinc-500">Enter your email address and we'll send you a password reset link.</p>
           </div>
           {resetSent ? (
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-3">
@@ -57,9 +57,9 @@ export default function AdminLogin() {
           ) : (
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Phone Number</label>
-                <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-                  value={resetPhone} onChange={e => setResetPhone(e.target.value)} placeholder="07..." required />
+                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Address</label>
+                <input type="email" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
+                  value={resetPhone} onChange={e => setResetPhone(e.target.value)} placeholder="your@email.com" required />
               </div>
               <button disabled={resetLoading} className="w-full bg-white text-black py-4 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
                 {resetLoading ? "Sending..." : "Send Reset Link"}
@@ -82,7 +82,7 @@ export default function AdminLogin() {
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Phone Number</label>
             <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-              onChange={e => setPhone(e.target.value)} placeholder="07..." required />
+              onChange={e => setPhone(e.target.value)} placeholder="your@email.com" required />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Password</label>

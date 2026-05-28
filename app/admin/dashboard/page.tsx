@@ -23,7 +23,11 @@ export default function AdminDashboard() {
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [saving, setSaving] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dmTarget, setDmTarget] = useState<any>(null);
+  const [dmMessages, setDmMessages] = useState<any[]>([]);
+  const [newDmMsg, setNewDmMsg] = useState("");
   const bottomRef = useRef<any>(null);
+  const dmBottomRef = useRef<any>(null);
   const router = useRouter();
 
   const purchasePrice = Number(productForm.purchase_price) || 0;
@@ -47,7 +51,26 @@ export default function AdminDashboard() {
     return () => { supabase.removeChannel(sub); };
   }, [activeTab]);
 
-  const loadAll = async () => {
+  useEffect(() => {
+    dmBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [dmMessages]);
+
+  useEffect(() => {
+    if (!dmTarget) return;
+    loadDmMessages(dmTarget.id);
+    const sub = supabase.channel(`dm-admin-${dmTarget.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+        (p: any) => {
+          const m = p.new;
+          if ((m.sender_id === "ADMIN" && m.receiver_id === dmTarget.id) ||
+              (m.sender_id === dmTarget.id && m.receiver_id === "ADMIN")) {
+            setDmMessages(prev => [...prev, m]);
+          }
+        }).subscribe();
+    return () => { supabase.removeChannel(sub); };
+  }, [dmTarget]);
+
+    const loadAll = async () => {
     const [staffRes, ordersRes, custRes, prodRes, catRes] = await Promise.all([
       supabase.from("sales_force").select("*").order("created_at", { ascending: false }),
       supabase.from("orders").select("salesperson_id, total_amount"),
@@ -81,7 +104,22 @@ export default function AdminDashboard() {
     setNewMsg("");
   };
 
-  const handleSuspend = async (staff: any) => {
+  const loadDmMessages = async (staffId: string) => {
+    const { data } = await supabase.from("messages").select("*")
+      .or(`and(sender_id.eq.ADMIN,receiver_id.eq.${staffId}),and(sender_id.eq.${staffId},receiver_id.eq.ADMIN)`)
+      .order("created_at");
+    if (data) setDmMessages(data);
+  };
+
+  const sendDmMessage = async () => {
+    if (!newDmMsg.trim() || !dmTarget) return;
+    const msg = { sender_id: "ADMIN", receiver_id: dmTarget.id, content: newDmMsg.trim(), is_admin_sender: true };
+    const { data } = await supabase.from("messages").insert([msg]).select().single();
+    if (data) setDmMessages(prev => [...prev, data]);
+    setNewDmMsg("");
+  };
+
+    const handleSuspend = async (staff: any) => {
     await supabase.from("sales_force").update({ status: staff.status === "suspended" ? "active" : "suspended" }).eq("id", staff.id);
     await loadAll(); setShowConfirm(null);
   };
@@ -276,39 +314,111 @@ export default function AdminDashboard() {
           )}
 
           {activeTab === "Chat" && (
-            <div className="h-full flex flex-col">
-              <div className="p-4 lg:p-6 border-b border-white/5 flex items-center gap-3 flex-shrink-0">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-black uppercase tracking-widest">Team Group Chat</p>
-                <span className="text-[9px] text-zinc-600 bg-white/5 px-2 py-1 rounded-full ml-2">{activeStaff.length} staff</span>
-                <span className="text-[9px] text-zinc-600 ml-auto">Everyone sees all messages</span>
-              </div>
-              <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
-                {messages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest mt-12">No messages yet — start the conversation</p>}
-                {messages.map((m, i) => {
-                  const isAdmin = m.is_admin_sender;
-                  const senderName = getSenderName(m);
-                  return (
-                    <div key={i} className={`flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
-                      <p className="text-[8px] font-black text-zinc-600 uppercase mb-1 px-1">{senderName}</p>
-                      <div className={`max-w-xs lg:max-w-md px-4 lg:px-5 py-3 rounded-2xl text-xs font-medium ${isAdmin ? "bg-white text-black" : "bg-white/5 border border-white/10 text-white"}`}>
-                        {m.content}
+            <div className="h-full flex overflow-hidden">
+              {/* Contact list sidebar */}
+              <div className="w-44 lg:w-52 border-r border-white/5 flex flex-col overflow-y-auto flex-shrink-0">
+                <button onClick={() => setDmTarget(null)}
+                  className={`p-4 text-left border-b border-white/5 transition-all ${!dmTarget ? "bg-white/10" : "hover:bg-white/5"}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
+                    <span className="text-[10px] font-black uppercase">Group</span>
+                  </div>
+                  <p className="text-[8px] text-zinc-600 pl-4">{activeStaff.length} staff</p>
+                </button>
+                {staffList.filter(s => s.status !== "removed").map(s => (
+                  <button key={s.id} onClick={() => setDmTarget(s)}
+                    className={`p-4 text-left border-b border-white/5 transition-all w-full ${dmTarget?.id === s.id ? "bg-white/10" : "hover:bg-white/5"}`}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 bg-white text-black rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0">{s.name?.[0]}</div>
+                      <div className="min-w-0 text-left">
+                        <p className="text-[10px] font-black uppercase truncate">{s.name?.split(" ")[0]}</p>
+                        <p className={`text-[8px] font-black uppercase ${s.status === "active" ? "text-emerald-400" : "text-amber-500"}`}>{s.status}</p>
                       </div>
-                      <p className="text-[8px] text-zinc-700 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
                     </div>
-                  );
-                })}
-                <div ref={bottomRef} />
+                  </button>
+                ))}
               </div>
-              <div className="p-4 lg:p-6 border-t border-white/5 flex-shrink-0">
-                <div className="flex items-center gap-3 lg:gap-4 bg-white/5 p-2 lg:p-3 rounded-2xl border border-white/5">
-                  <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Send a message to the whole team..." className="bg-transparent flex-1 outline-none text-sm px-3 lg:px-4" />
-                  <button onClick={sendMessage} className="p-2 lg:p-3 bg-white text-black rounded-xl hover:scale-105 transition-transform flex-shrink-0"><Send size={16}/></button>
+
+              {/* Chat area */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <div className="p-4 lg:p-6 border-b border-white/5 flex items-center gap-3 flex-shrink-0">
+                  {dmTarget ? (
+                    <>
+                      <div className="w-8 h-8 bg-white text-black rounded-xl flex items-center justify-center font-black text-sm">{dmTarget.name?.[0]}</div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest">{dmTarget.name}</p>
+                        <p className="text-[8px] text-zinc-600">Direct message — only you and {dmTarget.name?.split(" ")[0]} see this</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">Team Group Chat</p>
+                      <span className="text-[9px] text-zinc-600 bg-white/5 px-2 py-1 rounded-full ml-2">{activeStaff.length} staff</span>
+                      <span className="text-[9px] text-zinc-600 ml-auto hidden lg:block">Everyone sees all messages</span>
+                    </>
+                  )}
                 </div>
-                <p className="text-[8px] text-zinc-600 mt-2 px-1">All staff and admin see this group chat in real time</p>
+
+                <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+                  {dmTarget ? (
+                    <>
+                      {dmMessages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest mt-12">No messages yet — say hi to {dmTarget.name?.split(" ")[0]}</p>}
+                      {dmMessages.map((m, i) => {
+                        const isAdmin = m.is_admin_sender;
+                        return (
+                          <div key={i} className={`flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
+                            <p className="text-[8px] font-black text-zinc-600 uppercase mb-1 px-1">{isAdmin ? "Admin" : dmTarget.name}</p>
+                            <div className={`max-w-xs lg:max-w-md px-4 lg:px-5 py-3 rounded-2xl text-xs font-medium ${isAdmin ? "bg-white text-black" : "bg-white/5 border border-white/10 text-white"}`}>
+                              {m.content}
+                            </div>
+                            <p className="text-[8px] text-zinc-700 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
+                          </div>
+                        );
+                      })}
+                      <div ref={dmBottomRef} />
+                    </>
+                  ) : (
+                    <>
+                      {messages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest mt-12">No messages yet — start the conversation</p>}
+                      {messages.map((m, i) => {
+                        const isAdmin = m.is_admin_sender;
+                        const senderName = getSenderName(m);
+                        return (
+                          <div key={i} className={`flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
+                            <p className="text-[8px] font-black text-zinc-600 uppercase mb-1 px-1">{senderName}</p>
+                            <div className={`max-w-xs lg:max-w-md px-4 lg:px-5 py-3 rounded-2xl text-xs font-medium ${isAdmin ? "bg-white text-black" : "bg-white/5 border border-white/10 text-white"}`}>
+                              {m.content}
+                            </div>
+                            <p className="text-[8px] text-zinc-700 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
+                          </div>
+                        );
+                      })}
+                      <div ref={bottomRef} />
+                    </>
+                  )}
+                </div>
+
+                <div className="p-4 lg:p-6 border-t border-white/5 flex-shrink-0">
+                  {dmTarget ? (
+                    <div className="flex items-center gap-3 lg:gap-4 bg-white/5 p-2 lg:p-3 rounded-2xl border border-white/5">
+                      <input value={newDmMsg} onChange={e => setNewDmMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && sendDmMessage()} placeholder={`Message ${dmTarget.name?.split(" ")[0]}...`} className="bg-transparent flex-1 outline-none text-sm px-3 lg:px-4" />
+                      <button onClick={sendDmMessage} className="p-2 lg:p-3 bg-white text-black rounded-xl hover:scale-105 transition-transform flex-shrink-0"><Send size={16}/></button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-3 lg:gap-4 bg-white/5 p-2 lg:p-3 rounded-2xl border border-white/5">
+                        <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Send a message to the whole team..." className="bg-transparent flex-1 outline-none text-sm px-3 lg:px-4" />
+                        <button onClick={sendMessage} className="p-2 lg:p-3 bg-white text-black rounded-xl hover:scale-105 transition-transform flex-shrink-0"><Send size={16}/></button>
+                      </div>
+                      <p className="text-[8px] text-zinc-600 mt-2 px-1">All staff and admin see this group chat in real time</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
+
 
           {activeTab === "Stats" && (
             <div className="space-y-6 lg:space-y-8">

@@ -24,6 +24,7 @@ export default function OrderProcessorDashboard() {
   const [regionFilter, setRegionFilter] = useState("all");
   const [updatingOrder, setUpdatingOrder] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => { loadAll(); }, []);
@@ -304,7 +305,7 @@ export default function OrderProcessorDashboard() {
                 {[
                   { label: "Active", val: staff.filter(s => s.status === "active").length, color: "text-emerald-400" },
                   { label: "Suspended", val: staff.filter(s => s.status === "suspended").length, color: "text-amber-400" },
-                  { label: "Total", val: staff.length, color: "text-white" },
+                  { label: "Total", val: staff.filter((s: any) => s.status !== "removed").length, color: "text-white" },
                 ].map((m, i) => (
                   <div key={i} className="bg-white/[0.03] border border-white/5 p-5 lg:p-8 rounded-2xl lg:rounded-[2rem]">
                     <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-2">{m.label}</p>
@@ -315,7 +316,7 @@ export default function OrderProcessorDashboard() {
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                 {staffWithStats.filter(s => s.status !== "removed").map(s => (
-                  <div key={s.id} className={`bg-white/[0.02] border rounded-2xl lg:rounded-3xl p-5 lg:p-8 ${s.status === "suspended" ? "border-amber-500/20" : "border-white/5"}`}>
+                  <div key={s.id} onClick={() => setSelectedStaff(s)} className={`bg-white/[0.02] border rounded-2xl lg:rounded-3xl p-5 lg:p-8 cursor-pointer hover:border-white/20 transition-colors ${s.status === "suspended" ? "border-amber-500/20" : "border-white/5"}`}>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3 lg:gap-4">
                         <div className="w-10 h-10 lg:w-12 lg:h-12 bg-white text-black rounded-xl lg:rounded-2xl flex items-center justify-center font-black italic">{s.name?.[0]}</div>
@@ -420,6 +421,49 @@ export default function OrderProcessorDashboard() {
 
         </div>
       </main>
+
+      {selectedStaff && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setSelectedStaff(null)}>
+          <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-lg p-8 rounded-[3rem] overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-8">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white text-black rounded-2xl flex items-center justify-center font-black italic text-2xl">{selectedStaff.name?.[0]}</div>
+                <div>
+                  <h2 className="text-xl font-black uppercase tracking-tighter">{selectedStaff.name}</h2>
+                  <span className={`text-[9px] font-black uppercase ${selectedStaff.status === "active" ? "text-emerald-400" : selectedStaff.status === "suspended" ? "text-amber-500" : "text-rose-400"}`}>{selectedStaff.status}</span>
+                </div>
+              </div>
+              <button onClick={() => setSelectedStaff(null)} className="text-zinc-500 hover:text-white text-xl font-black">✕</button>
+            </div>
+            <div className="space-y-2 mb-6">
+              <div className="flex justify-between p-4 bg-white/5 rounded-2xl"><span className="text-[9px] font-black text-zinc-500 uppercase">Region</span><span className="text-[10px] font-black">{selectedStaff.region}</span></div>
+              <div className="flex justify-between p-4 bg-white/5 rounded-2xl"><span className="text-[9px] font-black text-zinc-500 uppercase">Phone</span><span className="text-[10px] font-black">{selectedStaff.phone}</span></div>
+              <div className="flex justify-between p-4 bg-white/5 rounded-2xl"><span className="text-[9px] font-black text-zinc-500 uppercase">Total Orders</span><span className="text-[10px] font-black">{selectedStaff.myOrders?.length || 0}</span></div>
+              <div className="flex justify-between p-4 bg-white/5 rounded-2xl"><span className="text-[9px] font-black text-zinc-500 uppercase">Today Orders</span><span className="text-[10px] font-black text-blue-400">{selectedStaff.todayOrders || 0}</span></div>
+              <div className="flex justify-between p-4 bg-white/5 rounded-2xl"><span className="text-[9px] font-black text-zinc-500 uppercase">Revenue</span><span className="text-[10px] font-black text-emerald-400">{fmt(selectedStaff.totalRevenue || 0)}</span></div>
+            </div>
+            {(selectedStaff.myOrders?.length || 0) > 0 && (
+              <div>
+                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-3">Order History</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {selectedStaff.myOrders.map((o: any) => (
+                    <div key={o.id} className="flex justify-between items-center p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                      <div>
+                        <p className="text-[10px] font-black uppercase">{o.order_ref}</p>
+                        <p className="text-[9px] text-zinc-600">{fmtDate(o.created_at)} · {o.customer?.customer_name || "Unknown"}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${statusColor(o.status)}`}>{o.status}</span>
+                        <span className="text-[9px] font-black text-emerald-400">KSH {Number(o.total_amount).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
