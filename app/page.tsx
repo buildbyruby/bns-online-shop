@@ -10,7 +10,7 @@ export default function EntryGate() {
         <div className="space-y-3">
           <img src="/logo.png" alt="BNS Logo" className="mx-auto mb-2 h-14 sm:h-20 w-auto" />
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter italic uppercase">BNS Systems</h1>
-          <p className="text-[10px] text-zinc-500 tracking-[0.4em] uppercase">Select Your Role</p>
+          <p className="text-[10px] text-zinc-400 tracking-[0.4em] uppercase">Select Your Role</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
@@ -53,7 +53,7 @@ export default function EntryGate() {
                 <Link href={card.loginHref} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] hover:underline py-1">
                   {card.loginLabel} <ArrowRight size={13} />
                 </Link>
-                <Link href={card.registerHref} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500 group-hover:text-zinc-400 hover:text-black transition-colors py-1">
+                <Link href={card.registerHref} className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-400 group-hover:text-zinc-400 hover:text-black transition-colors py-1">
                   {card.registerLabel} <UserPlus size={13} />
                 </Link>
               </div>

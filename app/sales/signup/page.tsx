@@ -26,12 +26,12 @@ export default function SalesSignup() {
   };
 
   const inp = "w-full bg-transparent border-b border-white/10 py-4 px-0 text-sm outline-none focus:border-white transition-colors";
-  const lbl = "text-[9px] font-black uppercase tracking-widest text-zinc-500";
+  const lbl = "text-[9px] font-black uppercase tracking-widest text-zinc-400";
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
       <div className="w-full max-w-sm space-y-8 sm:space-y-10">
-        <Link href="/" className="text-[9px] uppercase tracking-widest text-zinc-500 flex items-center gap-2 hover:text-white transition-colors">
+        <Link href="/" className="text-[9px] uppercase tracking-widest text-zinc-400 flex items-center gap-2 hover:text-white transition-colors">
           <ArrowLeft size={12}/> Back
         </Link>
         <div className="space-y-2">
@@ -65,7 +65,7 @@ export default function SalesSignup() {
             {loading ? "Setting up your account..." : "Create My Account"}
           </button>
         </form>
-        <Link href="/sales/login" className="block text-center text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white">
+        <Link href="/sales/login" className="block text-center text-[9px] uppercase tracking-widest text-zinc-400 hover:text-white">
           Already have an account? Log in
         </Link>
       </div>

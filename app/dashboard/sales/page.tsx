@@ -115,7 +115,7 @@ export default function SalesDashboard() {
         <div className="space-y-6">
           <div className="glass-card p-6 border-l-4 border-l-white">
             <h3 className="flex items-center gap-2 text-sm font-medium mb-4">
-              <Star size={16} className="text-yellow-500" /> AI Reminder
+              <Star size={16} className="text-zinc-400" /> AI Reminder
             </h3>
             <p className="text-xs text-muted leading-relaxed">
               Based on 2030 patterns, 4 B2B clients in the **Bakery** sector are due for a follow-up this afternoon.

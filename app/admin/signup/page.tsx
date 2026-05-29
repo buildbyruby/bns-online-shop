@@ -26,7 +26,7 @@ export default function AdminSignup() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
       <div className="w-full max-w-sm space-y-8 sm:space-y-10">
-        <Link href="/" className="text-[9px] uppercase tracking-widest text-zinc-500 flex items-center gap-2 hover:text-white transition-colors">
+        <Link href="/" className="text-[9px] uppercase tracking-widest text-zinc-400 flex items-center gap-2 hover:text-white transition-colors">
           <ArrowLeft size={12}/> Back to Roles
         </Link>
         <div className="space-y-2">

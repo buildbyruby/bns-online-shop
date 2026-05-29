@@ -70,7 +70,7 @@ export default function AdminDashboard() {
             </div>
             <div className="flex justify-between items-center border-b border-white/5 pb-2">
               <span className="text-sm">Beverages</span>
-              <span className="font-mono text-xs text-yellow-500">REPLENISH SOON</span>
+              <span className="font-mono text-xs text-zinc-400">REPLENISH SOON</span>
             </div>
           </div>
         </div>

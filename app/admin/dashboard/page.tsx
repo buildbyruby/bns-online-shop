@@ -172,10 +172,10 @@ export default function AdminDashboard() {
       <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-black/95 backdrop-blur-xl border-r border-white/5 flex flex-col transform transition-transform duration-300 lg:relative lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div className="p-6 lg:p-8 pb-8 flex items-start justify-between">
           <div>
-            <h1 className="text-xl lg:text-2xl font-black tracking-tighter italic uppercase">BNS<span className="text-zinc-600">.OS</span></h1>
-            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.3em] mt-1">Manage Team</p>
+            <h1 className="text-xl lg:text-2xl font-black tracking-tighter italic uppercase">BNS<span className="text-zinc-400">.OS</span></h1>
+            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-[0.3em] mt-1">Manage Team</p>
           </div>
-          <button className="lg:hidden text-zinc-500 hover:text-white mt-1" onClick={() => setSidebarOpen(false)}>✕</button>
+          <button className="lg:hidden text-zinc-400 hover:text-white mt-1" onClick={() => setSidebarOpen(false)}>✕</button>
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {[
@@ -186,23 +186,23 @@ export default function AdminDashboard() {
             { id: "Stats", icon: BarChart3, label: "Sales Info" }
           ].map((item) => (
             <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }}
-              className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all ${activeTab === item.id ? "bg-white text-black shadow-lg" : "text-zinc-500 hover:text-white hover:bg-white/5"}`}>
+              className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl text-[11px] font-bold uppercase tracking-[0.2em] transition-all ${activeTab === item.id ? "bg-white text-black shadow-lg" : "text-zinc-400 hover:text-white hover:bg-white/5"}`}>
               <item.icon size={18} /> {item.label}
             </button>
           ))}
         </nav>
         <div className="p-6 lg:p-8 border-t border-white/5">
-          <button onClick={() => router.push("/")} className="text-zinc-600 hover:text-rose-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><LogOut size={18} /> Logout</button>
+          <button onClick={() => router.push("/")} className="text-zinc-400 hover:text-rose-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-2"><LogOut size={18} /> Logout</button>
         </div>
       </aside>
 
       <main className="flex-1 flex flex-col relative z-10 overflow-hidden">
         <header className="h-16 lg:h-24 border-b border-white/5 flex items-center justify-between px-4 lg:px-12 flex-shrink-0">
           <div className="flex items-center gap-4">
-            <button className="lg:hidden p-2 text-zinc-500 hover:text-white" onClick={() => setSidebarOpen(true)}>
+            <button className="lg:hidden p-2 text-zinc-400 hover:text-white" onClick={() => setSidebarOpen(true)}>
               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
             </button>
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">{activeTab}</h2>
+            <h2 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-400">{activeTab}</h2>
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "Products" ? (
@@ -226,19 +226,19 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6">
                 {[{ label: "Total Revenue", val: fmt(totalMoney) }, { label: "Active Staff", val: activeStaff.length }, { label: "Total Customers", val: totalCustomers.toLocaleString() }, { label: "Performance", val: `${performance}%` }].map((m, i) => (
                   <div key={i} className="bg-white/[0.03] border border-white/5 p-5 lg:p-8 rounded-2xl lg:rounded-[2rem]">
-                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 lg:mb-4">{m.label}</p>
+                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 lg:mb-4">{m.label}</p>
                     <h3 className="text-2xl lg:text-3xl font-black tracking-tighter italic">{m.val}</h3>
                   </div>
                 ))}
               </div>
               <div className="bg-white/[0.02] border border-white/5 p-6 lg:p-10 rounded-2xl lg:rounded-[3rem]">
-                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-6">Staff Overview</p>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-6">Staff Overview</p>
                 <div className="space-y-3">
                   {staffList.filter(s => s.status !== "removed").slice(0, 6).map(s => (
                     <div key={s.id} className="flex items-center justify-between p-4 lg:p-5 bg-white/[0.02] rounded-2xl border border-white/5">
                       <div className="flex items-center gap-3 lg:gap-4">
                         <div className="w-8 h-8 lg:w-9 lg:h-9 bg-white text-black rounded-xl flex items-center justify-center font-black text-sm">{s.name?.[0]}</div>
-                        <div><p className="text-[11px] font-black uppercase">{s.name}</p><p className="text-[9px] text-zinc-600">{s.region}</p></div>
+                        <div><p className="text-[11px] font-black uppercase">{s.name}</p><p className="text-[9px] text-zinc-400">{s.region}</p></div>
                       </div>
                       <div className="text-right">
                         <p className="text-[10px] font-black text-emerald-400">{fmt(s.order_total || 0)}</p>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <h4 className="text-sm font-black uppercase">{s.name}</h4>
-                  <div className="mt-3 space-y-1 text-[10px] text-zinc-500 font-bold uppercase"><p>{s.region}</p><p>{s.phone}</p></div>
+                  <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase"><p>{s.region}</p><p>{s.phone}</p></div>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className={`text-[9px] font-black uppercase ${statusColor(s.status)}`}>{s.status}</span>
                     <span className="text-[10px] font-black text-emerald-400">{fmt(s.order_total || 0)}</span>
@@ -279,7 +279,7 @@ export default function AdminDashboard() {
               {products.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-24">
                   <Package size={40} className="text-zinc-800 mb-4" />
-                  <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">No products yet</p>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">No products yet</p>
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -290,17 +290,17 @@ export default function AdminDashboard() {
                   const margin = sp > 0 ? ((profit / sp) * 100).toFixed(1) : "0.0";
                   return (
                     <div key={p.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
-                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-40 object-cover" /> : <div className="w-full h-40 bg-white/5 flex items-center justify-center"><Package size={32} className="text-zinc-700" /></div>}
+                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-40 object-cover" /> : <div className="w-full h-40 bg-white/5 flex items-center justify-center"><Package size={32} className="text-zinc-400" /></div>}
                       <div className="p-5 lg:p-6">
                         <div className="flex items-start justify-between mb-2">
                           <h4 className="text-sm font-black uppercase">{p.name}</h4>
                           {p.product_type && <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${p.product_type === "B2B" ? "bg-blue-500/20 text-blue-400" : "bg-emerald-500/20 text-emerald-400"}`}>{p.product_type}</span>}
                         </div>
-                        {p.categories?.name && <p className="text-[9px] text-zinc-600 uppercase mb-2">{p.categories.name}</p>}
-                        {pp > 0 && <p className="text-[9px] text-zinc-500">Buy: KSH {pp.toLocaleString()}</p>}
+                        {p.categories?.name && <p className="text-[9px] text-zinc-400 uppercase mb-2">{p.categories.name}</p>}
+                        {pp > 0 && <p className="text-[9px] text-zinc-400">Buy: KSH {pp.toLocaleString()}</p>}
                         <p className="text-emerald-400 font-black text-xl">KSH {sp.toLocaleString()}</p>
                         {pp > 0 && <p className={`text-[9px] font-black mt-1 ${profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>Profit: KSH {profit.toLocaleString()} ({margin}%)</p>}
-                        <p className="text-[9px] text-zinc-600 mb-4">{p.stock_quantity} in stock</p>
+                        <p className="text-[9px] text-zinc-400 mb-4">{p.stock_quantity} in stock</p>
                         <div className="flex gap-2">
                           <button onClick={() => openEditProduct(p)} className="flex-1 p-3 bg-white/5 rounded-xl text-[9px] font-black uppercase hover:bg-white hover:text-black transition-all">Edit</button>
                           <button onClick={() => handleDeleteProduct(p.id)} className="p-3 bg-white/5 rounded-xl hover:bg-rose-500/20 hover:text-rose-400 transition-all"><Trash2 size={14}/></button>
@@ -323,7 +323,7 @@ export default function AdminDashboard() {
                     <div className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0 animate-pulse" />
                     <span className="text-[10px] font-black uppercase">Group</span>
                   </div>
-                  <p className="text-[8px] text-zinc-600 pl-4">{activeStaff.length} staff</p>
+                  <p className="text-[8px] text-zinc-400 pl-4">{activeStaff.length} staff</p>
                 </button>
                 {staffList.filter(s => s.status !== "removed").map(s => (
                   <button key={s.id} onClick={() => setDmTarget(s)}
@@ -347,15 +347,15 @@ export default function AdminDashboard() {
                       <div className="w-8 h-8 bg-white text-black rounded-xl flex items-center justify-center font-black text-sm">{dmTarget.name?.[0]}</div>
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-widest">{dmTarget.name}</p>
-                        <p className="text-[8px] text-zinc-600">Direct message — only you and {dmTarget.name?.split(" ")[0]} see this</p>
+                        <p className="text-[8px] text-zinc-400">Direct message — only you and {dmTarget.name?.split(" ")[0]} see this</p>
                       </div>
                     </>
                   ) : (
                     <>
                       <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                       <p className="text-[10px] font-black uppercase tracking-widest">Team Group Chat</p>
-                      <span className="text-[9px] text-zinc-600 bg-white/5 px-2 py-1 rounded-full ml-2">{activeStaff.length} staff</span>
-                      <span className="text-[9px] text-zinc-600 ml-auto hidden lg:block">Everyone sees all messages</span>
+                      <span className="text-[9px] text-zinc-400 bg-white/5 px-2 py-1 rounded-full ml-2">{activeStaff.length} staff</span>
+                      <span className="text-[9px] text-zinc-400 ml-auto hidden lg:block">Everyone sees all messages</span>
                     </>
                   )}
                 </div>
@@ -363,16 +363,16 @@ export default function AdminDashboard() {
                 <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
                   {dmTarget ? (
                     <>
-                      {dmMessages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest mt-12">No messages yet — say hi to {dmTarget.name?.split(" ")[0]}</p>}
+                      {dmMessages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-12">No messages yet — say hi to {dmTarget.name?.split(" ")[0]}</p>}
                       {dmMessages.map((m, i) => {
                         const isAdmin = m.is_admin_sender;
                         return (
                           <div key={i} className={`flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
-                            <p className="text-[8px] font-black text-zinc-600 uppercase mb-1 px-1">{isAdmin ? "Admin" : dmTarget.name}</p>
+                            <p className="text-[8px] font-black text-zinc-400 uppercase mb-1 px-1">{isAdmin ? "Admin" : dmTarget.name}</p>
                             <div className={`max-w-xs lg:max-w-md px-4 lg:px-5 py-3 rounded-2xl text-xs font-medium ${isAdmin ? "bg-white text-black" : "bg-white/5 border border-white/10 text-white"}`}>
                               {m.content}
                             </div>
-                            <p className="text-[8px] text-zinc-700 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
+                            <p className="text-[8px] text-zinc-400 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
                           </div>
                         );
                       })}
@@ -380,17 +380,17 @@ export default function AdminDashboard() {
                     </>
                   ) : (
                     <>
-                      {messages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-700 uppercase tracking-widest mt-12">No messages yet — start the conversation</p>}
+                      {messages.length === 0 && <p className="text-center text-[9px] font-black text-zinc-400 uppercase tracking-widest mt-12">No messages yet — start the conversation</p>}
                       {messages.map((m, i) => {
                         const isAdmin = m.is_admin_sender;
                         const senderName = getSenderName(m);
                         return (
                           <div key={i} className={`flex flex-col ${isAdmin ? "items-end" : "items-start"}`}>
-                            <p className="text-[8px] font-black text-zinc-600 uppercase mb-1 px-1">{senderName}</p>
+                            <p className="text-[8px] font-black text-zinc-400 uppercase mb-1 px-1">{senderName}</p>
                             <div className={`max-w-xs lg:max-w-md px-4 lg:px-5 py-3 rounded-2xl text-xs font-medium ${isAdmin ? "bg-white text-black" : "bg-white/5 border border-white/10 text-white"}`}>
                               {m.content}
                             </div>
-                            <p className="text-[8px] text-zinc-700 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
+                            <p className="text-[8px] text-zinc-400 px-1 mt-0.5">{new Date(m.created_at).toLocaleTimeString("en-KE",{hour:"2-digit",minute:"2-digit"})}</p>
                           </div>
                         );
                       })}
@@ -411,7 +411,7 @@ export default function AdminDashboard() {
                         <input value={newMsg} onChange={e => setNewMsg(e.target.value)} onKeyDown={e => e.key === "Enter" && sendMessage()} placeholder="Send a message to the whole team..." className="bg-transparent flex-1 outline-none text-sm px-3 lg:px-4" />
                         <button onClick={sendMessage} className="p-2 lg:p-3 bg-white text-black rounded-xl hover:scale-105 transition-transform flex-shrink-0"><Send size={16}/></button>
                       </div>
-                      <p className="text-[8px] text-zinc-600 mt-2 px-1">All staff and admin see this group chat in real time</p>
+                      <p className="text-[8px] text-zinc-400 mt-2 px-1">All staff and admin see this group chat in real time</p>
                     </>
                   )}
                 </div>
@@ -423,12 +423,12 @@ export default function AdminDashboard() {
           {activeTab === "Stats" && (
             <div className="space-y-6 lg:space-y-8">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6">
-                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4">Total Staff</p><h3 className="text-4xl font-black italic">{activeStaff.length}</h3></div>
-                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4">Total Revenue</p><h3 className="text-4xl font-black italic text-emerald-400">{fmt(totalMoney)}</h3></div>
-                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mb-4">Active Regions</p><h3 className="text-4xl font-black italic">{[...new Set(activeStaff.map(s => s.region))].length}</h3></div>
+                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Total Staff</p><h3 className="text-4xl font-black italic">{activeStaff.length}</h3></div>
+                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Total Revenue</p><h3 className="text-4xl font-black italic text-emerald-400">{fmt(totalMoney)}</h3></div>
+                <div className="bg-white/[0.03] border border-white/5 p-6 lg:p-8 rounded-[2rem]"><p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Active Regions</p><h3 className="text-4xl font-black italic">{[...new Set(activeStaff.map(s => s.region))].length}</h3></div>
               </div>
               <div className="bg-white/[0.02] border border-white/5 p-6 lg:p-10 rounded-[3rem]">
-                <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest mb-8">Leaderboard</p>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-8">Leaderboard</p>
                 <div className="space-y-5">
                   {[...staffList].filter(s => s.status !== "removed").sort((a,b) => (b.order_total||0)-(a.order_total||0)).map((s,i) => {
                     const max = Math.max(...staffList.map((x: any) => x.order_total||0), 1);
@@ -436,9 +436,9 @@ export default function AdminDashboard() {
                       <div key={s.id}>
                         <div className="flex justify-between mb-2 flex-wrap gap-2">
                           <div className="flex items-center gap-3">
-                            <span className="text-[9px] font-black text-zinc-600 w-4">#{i+1}</span>
+                            <span className="text-[9px] font-black text-zinc-400 w-4">#{i+1}</span>
                             <span className="text-[10px] font-black uppercase">{s.name}</span>
-                            <span className="text-[9px] text-zinc-600 hidden sm:inline">{s.region}</span>
+                            <span className="text-[9px] text-zinc-400 hidden sm:inline">{s.region}</span>
                             <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full ${s.status === "suspended" ? "bg-amber-500/20 text-amber-500" : "bg-emerald-500/20 text-emerald-500"}`}>{s.status}</span>
                           </div>
                           <span className="text-[10px] font-black text-emerald-400">{fmt(s.order_total||0)}</span>
@@ -477,25 +477,25 @@ export default function AdminDashboard() {
             <form onSubmit={handleSaveProduct} className="space-y-5">
               <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.name} onChange={e => setProductForm({...productForm,name:e.target.value})} required placeholder="Product Name"/>
               <div>
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-3">Product Type</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Product Type</label>
                 <div className="flex gap-2 p-1 bg-white/5 rounded-2xl">
                   {["B2C","B2B"].map(type => (
                     <button type="button" key={type} onClick={() => setProductForm({...productForm, product_type: type})}
-                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${productForm.product_type === type ? "bg-white text-black" : "text-zinc-500"}`}>
+                      className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${productForm.product_type === type ? "bg-white text-black" : "text-zinc-400"}`}>
                       {type === "B2C" ? "B2C — Individual" : "B2B — Business"}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest block mb-3">Pricing & Profit</label>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Pricing & Profit</label>
                 <div className="space-y-3">
                   <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.purchase_price} onChange={e => setProductForm({...productForm,purchase_price:e.target.value})} placeholder="Purchase Price (KSH)"/>
                   <input type="number" required className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.selling_price} onChange={e => setProductForm({...productForm,selling_price:e.target.value})} placeholder="Selling Price (KSH)"/>
                   {purchasePrice > 0 && sellingPrice > 0 && (
                     <div className={`p-4 rounded-2xl border ${profitAmount >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20"}`}>
-                      <div className="flex justify-between"><span className="text-[9px] font-black uppercase text-zinc-500">Profit</span><span className={`font-black ${profitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>KSH {profitAmount.toLocaleString()}</span></div>
-                      <div className="flex justify-between mt-1"><span className="text-[9px] font-black uppercase text-zinc-500">Margin</span><span className={`font-black ${profitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{profitMargin}%</span></div>
+                      <div className="flex justify-between"><span className="text-[9px] font-black uppercase text-zinc-400">Profit</span><span className={`font-black ${profitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>KSH {profitAmount.toLocaleString()}</span></div>
+                      <div className="flex justify-between mt-1"><span className="text-[9px] font-black uppercase text-zinc-400">Margin</span><span className={`font-black ${profitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>{profitMargin}%</span></div>
                     </div>
                   )}
                 </div>
@@ -515,7 +515,7 @@ export default function AdminDashboard() {
       {showConfirm && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-sm p-8 lg:p-10 rounded-[3rem]">
-            <div className="flex items-center gap-4 mb-6"><AlertTriangle size={28} className={showConfirm.type==="remove"?"text-rose-500":"text-amber-500"}/><div><h2 className="text-lg font-black italic uppercase">{showConfirm.type==="remove"?"Remove Staff":showConfirm.staff.status==="suspended"?"Reactivate":"Suspend"}</h2><p className="text-[9px] text-zinc-500 mt-1">{showConfirm.staff.name}</p></div></div>
+            <div className="flex items-center gap-4 mb-6"><AlertTriangle size={28} className={showConfirm.type==="remove"?"text-rose-500":"text-amber-500"}/><div><h2 className="text-lg font-black italic uppercase">{showConfirm.type==="remove"?"Remove Staff":showConfirm.staff.status==="suspended"?"Reactivate":"Suspend"}</h2><p className="text-[9px] text-zinc-400 mt-1">{showConfirm.staff.name}</p></div></div>
             <p className="text-[11px] text-zinc-400 mb-8 leading-relaxed">{showConfirm.type==="remove"?"They will be removed from the team.":showConfirm.staff.status==="suspended"?"They will be able to log in again.":"They will be blocked from logging in."}</p>
             <div className="flex gap-4">
               <button onClick={() => setShowConfirm(null)} className="flex-1 border border-white/10 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-white/5">Cancel</button>
