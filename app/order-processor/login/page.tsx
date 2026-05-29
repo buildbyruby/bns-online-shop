@@ -19,7 +19,7 @@ export default function OrderProcessorLogin() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: `${phone}@op.bns.com`, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: phone, password });
     if (error) { alert("Access denied. Check your phone and password."); setLoading(false); return; }
     router.push("/order-processor/dashboard");
     setLoading(false);
@@ -28,7 +28,7 @@ export default function OrderProcessorLogin() {
   const handleForgotPassword = async (e: any) => {
     e.preventDefault();
     setResetLoading(true);
-    const email = `${resetPhone}@op.bns.com`;
+    const email = resetPhone;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/order-processor/reset-password`,
     });
@@ -39,15 +39,15 @@ export default function OrderProcessorLogin() {
 
   if (showForgot) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white p-6">
-        <div className="w-full max-w-sm space-y-10">
+      <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
+        <div className="w-full max-w-sm space-y-8 sm:space-y-10">
           <button onClick={() => { setShowForgot(false); setResetSent(false); }} className="text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white flex items-center gap-2">
             ← Back to Login
           </button>
           <div className="space-y-2">
             <ClipboardList size={32} />
-            <h1 className="text-2xl font-black uppercase tracking-tighter italic">Reset Password</h1>
-            <p className="text-[10px] text-zinc-500">Enter your phone number to receive a reset link.</p>
+            <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic">Reset Password</h1>
+            <p className="text-[10px] text-zinc-500">Enter your email address and we'll send you a reset link.</p>
           </div>
           {resetSent ? (
             <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-3">
@@ -57,11 +57,11 @@ export default function OrderProcessorLogin() {
           ) : (
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div className="space-y-1">
-                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Phone Number</label>
-                <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-                  value={resetPhone} onChange={e => setResetPhone(e.target.value)} placeholder="07..." required />
+                <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Address</label>
+                <input type="email" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
+                  value={resetPhone} onChange={e => setResetPhone(e.target.value)} placeholder="your@email.com" required />
               </div>
-              <button disabled={resetLoading} className="w-full bg-white text-black py-4 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
+              <button disabled={resetLoading} className="w-full bg-white text-black py-4 text-[11px] sm:text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
                 {resetLoading ? "Sending..." : "Send Reset Link"}
               </button>
             </form>
@@ -72,17 +72,17 @@ export default function OrderProcessorLogin() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black text-white p-6">
-      <div className="w-full max-w-sm space-y-12">
+    <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
+      <div className="w-full max-w-sm space-y-8 sm:space-y-12">
         <div className="text-center space-y-2">
           <ClipboardList size={40} className="mx-auto mb-4" />
           <h1 className="text-2xl font-black tracking-widest uppercase italic">Processor Login</h1>
         </div>
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Phone Number</label>
+            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Address</label>
             <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-              onChange={e => setPhone(e.target.value)} placeholder="07..." required />
+              onChange={e => setPhone(e.target.value)} placeholder="your@email.com" required />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Password</label>
@@ -94,7 +94,7 @@ export default function OrderProcessorLogin() {
               </button>
             </div>
           </div>
-          <button disabled={loading} className="w-full bg-white text-black py-4 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50">
+          <button disabled={loading} className="w-full bg-white text-black py-4 text-[11px] sm:text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 disabled:opacity-50">
             {loading ? "Logging in..." : <> Log In <ArrowRight size={14}/> </>}
           </button>
         </form>

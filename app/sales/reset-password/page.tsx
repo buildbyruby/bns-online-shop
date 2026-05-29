@@ -8,14 +8,18 @@ export default function SalesResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [done, setDone] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setReady(true);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) setReady(true);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) setReady(true);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -32,11 +36,11 @@ export default function SalesResetPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-black text-white p-6">
-      <div className="w-full max-w-sm space-y-10">
+    <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
+      <div className="w-full max-w-sm space-y-8 sm:space-y-10">
         <div className="space-y-3">
           <BadgeDollarSign size={32} />
-          <h1 className="text-2xl font-black uppercase tracking-tighter italic">Set New Password</h1>
+          <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic">Set New Password</h1>
           <p className="text-[10px] text-zinc-500">Enter your new account password below.</p>
         </div>
         {done ? (
@@ -45,7 +49,10 @@ export default function SalesResetPassword() {
             <p className="text-[9px] text-zinc-500">Redirecting to login...</p>
           </div>
         ) : !ready ? (
-          <p className="text-[10px] text-zinc-500 animate-pulse">Verifying reset link...</p>
+          <div className="space-y-4">
+            <p className="text-[10px] text-zinc-500 animate-pulse">Verifying reset link...</p>
+            <p className="text-[9px] text-zinc-700">Link expired? <button onClick={() => router.push("/sales/login")} className="text-white underline">Go back</button></p>
+          </div>
         ) : (
           <form onSubmit={handleReset} className="space-y-6">
             <div className="space-y-1">
@@ -60,10 +67,15 @@ export default function SalesResetPassword() {
             </div>
             <div className="space-y-1">
               <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Confirm Password</label>
-              <input type="password" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-                value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required />
+              <div className="relative">
+                <input type={showConfirm ? "text" : "password"} className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono pr-12"
+                  value={confirm} onChange={e => setConfirm(e.target.value)} placeholder="••••••••" required />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+                  {showConfirm ? <EyeOff size={16}/> : <Eye size={16}/>}
+                </button>
+              </div>
             </div>
-            <button disabled={loading} className="w-full bg-white text-black py-4 text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
+            <button disabled={loading} className="w-full bg-white text-black py-4 text-[11px] sm:text-[10px] font-bold uppercase tracking-widest disabled:opacity-50">
               {loading ? "Updating..." : "Set New Password"}
             </button>
           </form>

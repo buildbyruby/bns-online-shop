@@ -2,9 +2,9 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { ClipboardList, Eye, EyeOff } from "lucide-react";
 
-export default function AdminResetPassword() {
+export default function ProcessorResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -32,16 +32,16 @@ export default function AdminResetPassword() {
     const { error } = await supabase.auth.updateUser({ password });
     if (error) { alert(error.message); setLoading(false); return; }
     setDone(true);
-    setTimeout(() => router.push("/admin/login"), 2000);
+    setTimeout(() => router.push("/order-processor/login"), 2000);
   };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-black text-white px-5 py-10 sm:p-8">
       <div className="w-full max-w-sm space-y-8 sm:space-y-10">
         <div className="space-y-3">
-          <Shield size={32} />
+          <ClipboardList size={32} />
           <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter italic">Set New Password</h1>
-          <p className="text-[10px] text-zinc-500">Enter your new admin account password below.</p>
+          <p className="text-[10px] text-zinc-500">Enter your new account password below.</p>
         </div>
         {done ? (
           <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-2">
@@ -51,7 +51,7 @@ export default function AdminResetPassword() {
         ) : !ready ? (
           <div className="space-y-4">
             <p className="text-[10px] text-zinc-500 animate-pulse">Verifying reset link...</p>
-            <p className="text-[9px] text-zinc-700">If this takes too long, the link may have expired. <button onClick={() => router.push("/admin/login")} className="text-white underline">Go back</button></p>
+            <p className="text-[9px] text-zinc-700">Link expired? <button onClick={() => router.push("/order-processor/login")} className="text-white underline">Go back</button></p>
           </div>
         ) : (
           <form onSubmit={handleReset} className="space-y-6">

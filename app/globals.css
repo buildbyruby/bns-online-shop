@@ -1,8 +1,38 @@
 @import "tailwindcss";
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
 body {
   background: #080808;
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior-y: none;
 }
+
+/* Remove tap flash on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* CRITICAL: Prevents iOS Safari from zooming in when tapping inputs */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* On larger screens, let Tailwind text classes take over */
+@media (min-width: 768px) {
+  input, textarea, select {
+    font-size: inherit !important;
+  }
+}
+
+/* Hide scrollbar but keep scrolling */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
