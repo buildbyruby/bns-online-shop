@@ -6,7 +6,7 @@ import { Shield, ArrowRight, UserPlus, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 
 export default function AdminLogin() {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,8 +19,8 @@ export default function AdminLogin() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: phone, password });
-    if (error) { alert("Access denied. Check your phone and password."); setLoading(false); return; }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { alert("Access denied. Check your email and password."); setLoading(false); return; }
     router.push("/admin/dashboard");
     setLoading(false);
   };
@@ -81,8 +81,8 @@ export default function AdminLogin() {
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Address</label>
-            <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-              onChange={e => setPhone(e.target.value)} placeholder="your@email.com" required />
+            <input type="email" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
+              onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Password</label>

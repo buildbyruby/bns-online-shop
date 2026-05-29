@@ -74,8 +74,8 @@ export default function SalesDashboard() {
       if (!session) { router.push("/sales/login"); return; }
       const user = session.user;
       setAuthUser(user);
-      const phone = user.email?.replace("@sales.bns.com", "");
-      const { data: staff } = await supabase.from("sales_force").select("*").eq("phone", phone).single();
+      const userEmail = user.email;
+      const { data: staff } = await supabase.from("sales_force").select("*").eq("email", userEmail).single();
       if (staff) {
         setCurrentStaff(staff);
         await Promise.all([loadCustomers(), loadMessages(staff.id), loadProducts(), loadAllOrders(staff.id)]);

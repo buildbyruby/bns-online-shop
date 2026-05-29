@@ -6,7 +6,7 @@ import { BadgeDollarSign, ArrowRight, UserPlus, Eye, EyeOff } from "lucide-react
 import Link from "next/link";
 
 export default function SalesLogin() {
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -19,9 +19,9 @@ export default function SalesLogin() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: phone, password });
-    if (error) { alert("Login failed. Check your phone number and password."); setLoading(false); return; }
-    const { data: staff } = await supabase.from("sales_force").select("status").eq("phone", phone).single();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) { alert("Login failed. Check your email and password."); setLoading(false); return; }
+    const { data: staff } = await supabase.from("sales_force").select("status").eq("email", email).single();
     if (!staff || staff.status === "suspended") {
       await supabase.auth.signOut();
       alert("Your account has been suspended. Contact your admin.");
@@ -91,9 +91,9 @@ export default function SalesLogin() {
         </div>
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-1">
-            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Your Phone Number</label>
-            <input type="text" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
-              onChange={e => setPhone(e.target.value)} placeholder="your@email.com" required />
+            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Email Address</label>
+            <input type="email" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"
+              onChange={e => setEmail(e.target.value)} placeholder="your@email.com" required />
           </div>
           <div className="space-y-1">
             <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Your Password</label>
