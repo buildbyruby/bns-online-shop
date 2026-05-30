@@ -22,12 +22,12 @@ export default function SalesLogin() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { alert("Login failed. Check your email and password."); setLoading(false); return; }
     const { data: staff } = await supabase.from("sales_force").select("status").eq("email", email).single();
-    if (!staff || staff.status === "suspended") {
+    if (staff?.status === "suspended") {
       await supabase.auth.signOut();
       alert("Your account has been suspended. Contact your admin.");
       setLoading(false); return;
     }
-    if (staff.status === "removed") {
+    if (staff?.status === "removed") {
       await supabase.auth.signOut();
       alert("This account no longer exists. Contact your admin.");
       setLoading(false); return;

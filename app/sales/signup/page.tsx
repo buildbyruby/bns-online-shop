@@ -18,6 +18,10 @@ export default function SalesSignup() {
     setLoading(true);
     const { error } = await supabase.auth.signUp({ email: formData.email, password: formData.password, options: { data: { full_name: formData.name, phone_number: formData.phone, region: formData.region, role: "SALES" } } });
     if (error) { alert(error.message); setLoading(false); return; }
+    const { error: staffError } = await supabase.from("sales_force").update({ email: formData.email, name: formData.name, region: formData.region, status: "active" }).eq("phone", formData.phone);
+    if (staffError || staffError === null) {
+      await supabase.from("sales_force").insert({ email: formData.email, name: formData.name, phone: formData.phone, region: formData.region, status: "active" });
+    }
     router.push("/sales/dashboard");
     setLoading(false);
   };
