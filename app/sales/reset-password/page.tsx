@@ -9,6 +9,7 @@ export default function SalesResetPassword() {
   const [confirm, setConfirm] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [ready, setReady] = useState(false);
   const [done, setDone] = useState(false);
