@@ -264,7 +264,7 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <h4 className="text-sm font-black uppercase">{s.name}</h4>
-                  <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase"><p>{s.region}</p><p>{s.phone}</p></div>
+                  <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase"><p>{s.region}</p><p>{s.phone}</p><p>Last login: {s.last_login ? new Date(s.last_login).toLocaleString() : "Never"}</p></div>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className={`text-[9px] font-black uppercase ${statusColor(s.status)}`}>{s.status}</span>
                     <span className="text-[10px] font-black text-emerald-400">{fmt(s.order_total || 0)}</span>
