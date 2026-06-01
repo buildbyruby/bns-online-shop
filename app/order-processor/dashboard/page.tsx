@@ -323,12 +323,12 @@ export default function OrderProcessorDashboard() {
                         <div>
                           <h4 className="text-sm font-black uppercase">{s.name}</h4>
                           <p className="text-[9px] text-zinc-400">{s.region}</p>
-                          <p className="text-[9px] text-zinc-400">{s.phone}</p>
+                          <p className="text-[9px] text-zinc-400">{s.phone}</p><p className="text-[9px] text-zinc-400">Last login: {s.last_login ? new Date(s.last_login).toLocaleString() : "Never"}</p>
                         </div>
                       </div>
                       <span className={`text-[9px] font-black uppercase ${s.status === "active" ? "text-emerald-400" : s.status === "suspended" ? "text-amber-500" : "text-rose-400"}`}>{s.status}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-white/5">
                       <div><p className="text-[8px] text-zinc-400 uppercase mb-1">Orders</p><p className="font-black">{s.myOrders.length}</p></div>
                       <div><p className="text-[8px] text-zinc-400 uppercase mb-1">Today</p><p className="font-black text-blue-400">{s.todayOrders}</p></div>
                       <div><p className="text-[8px] text-zinc-400 uppercase mb-1">Revenue</p><p className="font-black text-emerald-400 text-xs">{fmt(s.totalRevenue)}</p></div>
