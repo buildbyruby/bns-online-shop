@@ -9,6 +9,8 @@ const REGIONS = ["Buruburu Phase 5","Buruburu Phase 4","Buruburu Phase 3","Burub
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("Home");
   const [staffList, setStaffList] = useState<any[]>([]);
+  const [adminList, setAdminList] = useState<any[]>([]);
+  const [orderProcessorList, setOrderProcessorList] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -71,12 +73,14 @@ export default function AdminDashboard() {
   }, [dmTarget]);
 
     const loadAll = async () => {
-    const [staffRes, ordersRes, custRes, prodRes, catRes] = await Promise.all([
+    const [staffRes, ordersRes, custRes, prodRes, catRes, adminsRes, opRes] = await Promise.all([
       supabase.from("sales_force").select("*").order("created_at", { ascending: false }),
       supabase.from("orders").select("salesperson_id, total_amount"),
       supabase.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("products").select("*, categories(name)").order("name"),
-      supabase.from("categories").select("*").order("name")
+      supabase.from("categories").select("*").order("name"),
+      supabase.from("admins").select("*").order("created_at", { ascending: false }),
+      supabase.from("order_processors").select("*").order("created_at", { ascending: false })
     ]);
     const allOrders = ordersRes.data || [];
     if (staffRes.data) {
@@ -87,6 +91,8 @@ export default function AdminDashboard() {
     }
     if (prodRes.data) setProducts(prodRes.data);
     if (catRes.data) setCategories(catRes.data);
+    if (adminsRes.data) setAdminList(adminsRes.data);
+    if (opRes.data) setOrderProcessorList(opRes.data);
     setTotalMoney(allOrders.reduce((s: number, r: any) => s + (Number(r.total_amount) || 0), 0));
     setTotalCustomers(custRes.count || 0);
   };
@@ -181,6 +187,8 @@ export default function AdminDashboard() {
           {[
             { id: "Home", icon: Home, label: "Home" },
             { id: "Staff", icon: Users, label: "Staff List" },
+            { id: "Admins", icon: Users, label: "Admin List" },
+            { id: "OrderProcessors", icon: Users, label: "Order Processors" },
             { id: "Products", icon: Package, label: "Products" },
             { id: "Chat", icon: MessageSquare, label: "Messages" },
             { id: "Stats", icon: BarChart3, label: "Sales Info" }
@@ -271,6 +279,52 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {activeTab === "Admins" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+              {adminList.map((a) => (
+                <div key={a.id} className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 lg:p-8">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 bg-white text-black rounded-2xl flex items-center justify-center font-black italic text-lg">{a.name?.[0]?.toUpperCase()}</div>
+                  </div>
+                  <h4 className="text-sm font-black uppercase">{a.name || "—"}</h4>
+                  <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase">
+                    <p>{a.email}</p>
+                    <p>{a.phone || ""}</p>
+                    <p>Last login: {"Never"}</p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                    <span className="text-[9px] font-black uppercase text-emerald-400">Active</span>
+                    <span className="text-[9px] font-black uppercase text-zinc-400">Admin</span>
+                  </div>
+                </div>
+              ))}
+              {adminList.length === 0 && <p className="text-[10px] text-zinc-400 font-bold uppercase">No admins found</p>}
+            </div>
+          )}
+
+          {activeTab === "OrderProcessors" && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+              {orderProcessorList.map((op) => (
+                <div key={op.id} className="bg-white/[0.02] border border-white/5 rounded-3xl p-6 lg:p-8">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="w-12 h-12 bg-white text-black rounded-2xl flex items-center justify-center font-black italic text-lg">{op.name?.[0]?.toUpperCase()}</div>
+                  </div>
+                  <h4 className="text-sm font-black uppercase">{op.name || "—"}</h4>
+                  <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase">
+                    <p>{op.email}</p>
+                    <p>{op.phone || ""}</p>
+                    <p>Last login: {"Never"}</p>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
+                    <span className="text-[9px] font-black uppercase text-emerald-400">Active</span>
+                    <span className="text-[9px] font-black uppercase text-zinc-400">Order Processor</span>
+                  </div>
+                </div>
+              ))}
+              {orderProcessorList.length === 0 && <p className="text-[10px] text-zinc-400 font-bold uppercase">No order processors found</p>}
             </div>
           )}
 
