@@ -34,7 +34,7 @@ export default function AdminSignup() {
     const { error: insertError } = await supabase.from("admins").upsert({ id: userId, name: formData.name, phone: formData.phone });
     if (insertError) { alert("Insert error: " + insertError.message); setLoading(false); return; }
 
-    router.push("/admin/dashboard");
+    localStorage.setItem("userEmail", formData.email); router.push("/admin/dashboard");
     setLoading(false);
   };
 

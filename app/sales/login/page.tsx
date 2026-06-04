@@ -11,7 +11,7 @@ export default function SalesLogin() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
-  const [resetPhone, setResetPhone] = useState("");
+  const [resetPhone, setResetPhone] = useState(typeof window !== "undefined" ? localStorage.getItem("userEmail") || "" : "");
   const [resetSent, setResetSent] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function SalesLogin() {
       alert("This account no longer exists. Contact your admin.");
       setLoading(false); return;
     }
-    router.push("/sales/dashboard");
+    localStorage.setItem("userEmail", email); router.push("/sales/dashboard");
     setLoading(false);
   };
 
@@ -66,7 +66,7 @@ export default function SalesLogin() {
               <p className="text-[9px] text-zinc-400">Check your email inbox and click the link to reset your password.</p>
             </div>
           ) : (
-            <form onSubmit={handleForgotPassword} className="space-y-6">
+            <form onSubmit={handleForgotPassword} className="space-y-6"><p className="text-[10px] text-zinc-400">Sending reset link to <span className="text-white font-mono">{resetPhone}</span></p>
               <div className="space-y-1">
                 <label className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Email Address</label>
                 <input type="email" className="w-full bg-transparent border-b border-white/10 py-4 px-4 text-sm outline-none focus:border-white font-mono"

@@ -22,7 +22,7 @@ export default function SalesSignup() {
     if (staffError || staffError === null) {
       await supabase.from("sales_force").insert({ email: formData.email, name: formData.name, phone: formData.phone, region: formData.region, status: "active" });
     }
-    router.push("/sales/dashboard");
+    localStorage.setItem("userEmail", formData.email); router.push("/sales/dashboard");
     setLoading(false);
   };
 

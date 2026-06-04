@@ -32,7 +32,7 @@ export default function OrderProcessorSignup() {
     const { error: insertError } = await supabase.from("order_processors").upsert({ id: userId, name: formData.name, phone: formData.phone });
     if (insertError) { alert("Insert error: " + insertError.message); setLoading(false); return; }
 
-    router.push("/order-processor/dashboard");
+    localStorage.setItem("userEmail", formData.email); router.push("/order-processor/dashboard");
     setLoading(false);
   };
 
