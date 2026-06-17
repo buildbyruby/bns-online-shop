@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BNS Systems
 
-## Getting Started
+> A role-based business operations platform for managing sales, order processing, and inventory, built for a real retail operation in Nairobi (Buruburu).
 
-First, run the development server:
+BNS Systems replaces manual order tracking and paper-based sales logs with a single system, split into three separate logins so each part of the business only sees what's relevant to their role.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## What it does
+
+The app starts at a role selection screen with three separate areas, each with its own login and signup:
+
+- **Admin.** Global control over inventory, products, and analytics across the whole business.
+- **Salesperson.** Customer CRM, sales entry, and habit/performance tracking for the sales team.
+- **Order Processor.** Manages incoming orders, assigns them to staff, tracks status (pending, processing, completed, cancelled), and filters by delivery region (covering specific zones like Buruburu Phase 1 through 5, Harambee, and surrounding outskirts).
+
+Each dashboard pulls live data from Supabase and joins it manually in the frontend, for example matching an order to its customer and the salesperson who closed it, so staff can see the full picture of an order without switching screens.
+
+## Tech stack
+
+| Layer | Choice | Why |
+|---|---|---|
+| Frontend | React 19 + Next.js 16 | File-based routing made it straightforward to separate admin, sales, and order-processor into isolated route groups, each with its own auth flow |
+| Database | Supabase (Postgres) | Real-time data, fast setup, and role-based data access without building a custom backend from scratch |
+| Styling | Tailwind CSS v4 | Fast iteration on a dense, data-heavy dashboard UI |
+| Animation | Framer Motion | Used for transitions on the dashboards |
+| Icons | Lucide React | Consistent icon set across all three roles |
+
+**Note on Electron:** Electron is listed as a dependency for a planned desktop version of this app, but the desktop build is not wired up yet. Currently this runs as a web app only.
+
+## Project structure
+
+```
+app/
+├── page.tsx                       # Role selection entry screen
+├── admin/
+│   ├── login/, signup/, reset-password/
+│   └── dashboard/page.tsx         # Inventory, products, analytics
+├── sales/
+│   ├── login/, signup/
+│   └── dashboard/                 # CRM, sales entry, habit tracking
+├── order-processor/
+│   ├── login/, signup/, reset-password/
+│   └── dashboard/page.tsx         # Orders, staff, regional filtering
+lib/
+└── supabase.ts                    # Supabase client
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Getting started
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+git clone https://github.com/<your-username>/bns-online-shop.git
+cd bns-online-shop
+npm install
+cp .env.example .env.local   # add your own keys
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+### Required environment variables
 
-To learn more about Next.js, take a look at the following resources:
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Supabase tables expected
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This app expects `orders`, `sales_force`, and `customers` tables in Supabase, joined in the frontend by `customer_id` and `salesperson_id`.
 
-## Deploy on Vercel
+## What I'd improve next
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Server-side joins.** Orders, staff, and customers are currently joined manually in the frontend after three separate fetches. Moving this to a Supabase view or RPC function would be faster and more reliable as data grows.
+- **Finish the Electron build.** Wire up the desktop packaging so this can run as a standalone app for in-store use, not just in a browser.
+- **Row-level security.** Add Supabase RLS policies so each role can only read and write the data relevant to them at the database level, not just in the UI.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+Built by Ruby Kituli
