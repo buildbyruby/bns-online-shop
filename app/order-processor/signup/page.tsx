@@ -15,24 +15,24 @@ export default function OrderProcessorSignup() {
     e.preventDefault();
     setLoading(true);
 
-    let userId = "";
+    const res = await fetch("/api/staff/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: "order_processor",
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        password: formData.password,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok) { alert(result.error || "Signup failed."); setLoading(false); return; }
 
-    const { data, error } = await supabase.auth.signUp({ email: formData.email, password: formData.password, options: { data: { full_name: formData.name, phone_number: formData.phone, role: "PROCESSOR" } } });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password });
+    if (signInError) { alert(signInError.message); setLoading(false); return; }
 
-    if (error && error.message.includes("already registered")) {
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password });
-      if (signInError) { alert("Account exists but wrong password."); setLoading(false); return; }
-      userId = signInData.user.id;
-    } else if (error) {
-      alert(error.message); setLoading(false); return;
-    } else if (data.user) {
-      userId = data.user.id;
-    }
-
-    const { error: insertError } = await supabase.from("order_processors").upsert({ id: userId, name: formData.name, phone: formData.phone });
-    if (insertError) { alert("Insert error: " + insertError.message); setLoading(false); return; }
-
-    localStorage.setItem("userEmail", formData.email); router.push("/order-processor/dashboard");
+    router.push("/order-processor/dashboard");
     setLoading(false);
   };
 
@@ -53,3 +53,4 @@ export default function OrderProcessorSignup() {
     </div>
   );
 }
+

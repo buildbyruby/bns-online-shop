@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { useInactivityLogout } from "@/lib/useInactivityLogout";
 import {
   Home, Users, Package, MessageSquare, BarChart3,
   ClipboardList, LogOut, Activity
@@ -13,6 +14,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
   const pathname = usePathname();
+
+  useInactivityLogout("/login");
 
   useEffect(() => {
     const getRole = async () => {
@@ -58,7 +61,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-black text-white">
-      {/* Sidebar */}
       <aside className="w-64 border-r border-white/5 flex flex-col p-6 gap-2 fixed h-full">
         <div className="mb-8">
           <p className="text-xs font-mono text-white/30 uppercase tracking-widest">BNS.OS</p>
@@ -93,10 +95,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </button>
       </aside>
 
-      {/* Main content */}
       <main className="ml-64 flex-1 p-8">
         {children}
       </main>
     </div>
   );
 }
+

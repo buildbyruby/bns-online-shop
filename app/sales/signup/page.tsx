@@ -16,13 +16,26 @@ export default function SalesSignup() {
   const handleSignup = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email: formData.email, password: formData.password, options: { data: { full_name: formData.name, phone_number: formData.phone, region: formData.region, role: "SALES" } } });
-    if (error) { alert(error.message); setLoading(false); return; }
-    const { error: staffError } = await supabase.from("sales_force").update({ email: formData.email, name: formData.name, region: formData.region, status: "active" }).eq("phone", formData.phone);
-    if (staffError || staffError === null) {
-      await supabase.from("sales_force").insert({ email: formData.email, name: formData.name, phone: formData.phone, region: formData.region, status: "active" });
-    }
-    localStorage.setItem("userEmail", formData.email); router.push("/sales/dashboard");
+
+    const res = await fetch("/api/staff/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        role: "sales",
+        name: formData.name,
+        phone: formData.phone,
+        email: formData.email,
+        password: formData.password,
+        region: formData.region,
+      }),
+    });
+    const result = await res.json();
+    if (!res.ok) { alert(result.error || "Signup failed."); setLoading(false); return; }
+
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password });
+    if (signInError) { alert(signInError.message); setLoading(false); return; }
+
+    router.push("/sales/dashboard");
     setLoading(false);
   };
 
@@ -47,3 +60,4 @@ export default function SalesSignup() {
     </div>
   );
 }
+

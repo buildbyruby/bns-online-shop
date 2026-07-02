@@ -1,0 +1,76 @@
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const ADMIN_INVITE_CODE = process.env.ADMIN_INVITE_CODE;
+
+const TABLE_FOR_ROLE: Record<string, string> = {
+  admin: "admins",
+  order_processor: "order_processors",
+  sales: "sales_force",
+};
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  const { role, inviteCode, name, phone, email, password, region } = body ?? {};
+
+  if (!role || !TABLE_FOR_ROLE[role]) {
+    return NextResponse.json({ error: "Invalid role." }, { status: 400 });
+  }
+  if (!name || !phone || !email || !password) {
+    return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+  }
+
+  if (role === "admin") {
+    if (!ADMIN_INVITE_CODE || inviteCode !== ADMIN_INVITE_CODE) {
+      return NextResponse.json({ error: "Invalid invite code." }, { status: 403 });
+    }
+  }
+
+  const admin = createAdminClient();
+
+  const { data: created, error: createError } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: name, phone_number: phone, role },
+  });
+
+  let userId = created?.user?.id;
+
+  if (createError) {
+    if (!createError.message.toLowerCase().includes("already")) {
+      return NextResponse.json({ error: createError.message }, { status: 400 });
+    }
+    const { data: existing } = await admin.auth.admin.listUsers();
+    const match = existing.users.find((u) => u.email === email);
+    if (!match) {
+      return NextResponse.json({ error: "Account exists but could not be resolved." }, { status: 400 });
+    }
+    userId = match.id;
+  }
+
+  if (!userId) {
+    return NextResponse.json({ error: "User creation failed." }, { status: 500 });
+  }
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .upsert({ id: userId, full_name: name, role, is_active: true });
+  if (profileError) {
+    return NextResponse.json({ error: profileError.message }, { status: 500 });
+  }
+
+  const staffPayload: Record<string, unknown> = { id: userId, name, phone, email };
+  if (role === "sales") staffPayload.region = region ?? "Buruburu Phase 1";
+  if (role === "sales") staffPayload.status = "active";
+
+  const { error: staffError } = await admin
+    .from(TABLE_FOR_ROLE[role])
+    .upsert(staffPayload, { onConflict: "id" });
+  if (staffError) {
+    return NextResponse.json({ error: staffError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
