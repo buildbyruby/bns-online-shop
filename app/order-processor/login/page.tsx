@@ -19,8 +19,9 @@ export default function OrderProcessorLogin() {
   const handleLogin = async (e: any) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) { alert("Access denied. Check your email and password."); setLoading(false); return; }
+    if (signInData.user) { await supabase.from("order_processors").update({ last_login: new Date().toISOString() }).eq("id", signInData.user.id); }
     localStorage.setItem("userEmail", email); router.push("/order-processor/dashboard");
     setLoading(false);
   };

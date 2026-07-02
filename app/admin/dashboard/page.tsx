@@ -293,7 +293,7 @@ export default function AdminDashboard() {
                   <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase">
                     <p>{a.email}</p>
                     <p>{a.phone || ""}</p>
-                    <p>Last login: {"Never"}</p>
+                    <p>Last login: {a.last_login ? new Date(a.last_login).toLocaleString() : "Never"}</p>
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className="text-[9px] font-black uppercase text-emerald-400">Active</span>
@@ -316,7 +316,7 @@ export default function AdminDashboard() {
                   <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase">
                     <p>{op.email}</p>
                     <p>{op.phone || ""}</p>
-                    <p>Last login: {"Never"}</p>
+                    <p>Last login: {op.last_login ? new Date(op.last_login).toLocaleString() : "Never"}</p>
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className="text-[9px] font-black uppercase text-emerald-400">Active</span>
