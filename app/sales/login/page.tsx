@@ -32,6 +32,7 @@ export default function SalesLogin() {
       alert("This account no longer exists. Contact your admin.");
       setLoading(false); return;
     }
+    await supabase.from("sales_force").update({ last_login: new Date().toISOString() }).eq("email", email);
     localStorage.setItem("userEmail", email); router.push("/sales/dashboard");
     setLoading(false);
   };

@@ -31,6 +31,7 @@ export default function OrderProcessorSignup() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password });
     if (signInError) { alert(signInError.message); setLoading(false); return; }
+    if (formData.email) { await supabase.from("order_processors").update({ last_login: new Date().toISOString() }).eq("email", formData.email); }
 
     router.push("/order-processor/dashboard");
     setLoading(false);
