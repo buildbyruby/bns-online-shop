@@ -1,20 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createProxyClient } from "@/lib/supabase/server";
 
-const ROLE_HOME: Record<string, string> = {
-  admin: "/admin/dashboard",
-  order_processor: "/order-processor/dashboard",
-  sales: "/sales/dashboard",
-};
-
-function matchesRole(pathname: string, role: string | null) {
-  if (pathname.startsWith("/admin/dashboard")) return role === "admin";
-  if (pathname.startsWith("/order-processor/dashboard")) return role === "order_processor";
-  if (pathname.startsWith("/sales/dashboard")) return role === "sales";
-  if (pathname.startsWith("/dashboard/admin")) return role === "admin";
-  if (pathname.startsWith("/dashboard/order-processor")) return role === "order_processor";
-  if (pathname.startsWith("/dashboard/sales")) return role === "sales";
-  return true;
+function requiredRoleFor(pathname: string): string | null {
+  if (pathname.startsWith("/admin/dashboard")) return "admin";
+  if (pathname.startsWith("/order-processor/dashboard")) return "order_processor";
+  if (pathname.startsWith("/sales/dashboard")) return "sales";
+  if (pathname.startsWith("/dashboard/admin")) return "admin";
+  if (pathname.startsWith("/dashboard/order-processor")) return "order_processor";
+  if (pathname.startsWith("/dashboard/sales")) return "sales";
+  return null;
 }
 
 function loginPathFor(pathname: string) {
@@ -50,17 +44,18 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
+  const { data: roleRows } = await supabase
+    .from("user_roles")
     .select("role")
-    .eq("id", user.id)
-    .single();
+    .eq("user_id", user.id);
 
-  const role = profile?.role ?? null;
+  const roles = new Set((roleRows ?? []).map((r) => r.role));
+  const required = requiredRoleFor(pathname);
 
-  if (!matchesRole(pathname, role)) {
+  if (required && !roles.has(required)) {
     const url = request.nextUrl.clone();
-    url.pathname = role && ROLE_HOME[role] ? ROLE_HOME[role] : "/login";
+    url.pathname = loginPathFor(pathname);
+    url.searchParams.set("denied", required);
     return NextResponse.redirect(url);
   }
 
@@ -75,4 +70,3 @@ export const config = {
     "/dashboard/:path*",
   ],
 };
-

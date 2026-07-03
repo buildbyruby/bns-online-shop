@@ -16,8 +16,9 @@ export default function OrderProcessorDashboardLayout({ children }: { children: 
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/order-processor/login"); return; }
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (profile?.role !== "order_processor") { router.replace("/order-processor/login"); return; }
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const hasRole = (roles ?? []).some(r => r.role === "order_processor");
+      if (!hasRole) { router.replace("/order-processor/login?denied=order_processor"); return; }
       if (active) setChecked(true);
     };
     check();
@@ -28,4 +29,3 @@ export default function OrderProcessorDashboardLayout({ children }: { children: 
 
   return <>{children}</>;
 }
-

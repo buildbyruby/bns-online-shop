@@ -16,8 +16,9 @@ export default function SalesDashboardLayout({ children }: { children: React.Rea
     const check = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.replace("/sales/login"); return; }
-      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-      if (profile?.role !== "sales") { router.replace("/sales/login"); return; }
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const hasRole = (roles ?? []).some(r => r.role === "sales");
+      if (!hasRole) { router.replace("/sales/login?denied=sales"); return; }
       if (active) setChecked(true);
     };
     check();
@@ -28,4 +29,3 @@ export default function SalesDashboardLayout({ children }: { children: React.Rea
 
   return <>{children}</>;
 }
-

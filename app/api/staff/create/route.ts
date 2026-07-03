@@ -53,11 +53,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "User creation failed." }, { status: 500 });
   }
 
+  const { data: existingProfile } = await admin.from("profiles").select("role").eq("id", userId).single();
   const { error: profileError } = await admin
     .from("profiles")
-    .upsert({ id: userId, full_name: name, role, is_active: true });
+    .upsert({ id: userId, full_name: name, role: existingProfile?.role ?? role, is_active: true });
   if (profileError) {
     return NextResponse.json({ error: profileError.message }, { status: 500 });
+  }
+
+  const { error: roleError } = await admin
+    .from("user_roles")
+    .upsert({ user_id: userId, role }, { onConflict: "user_id,role", ignoreDuplicates: true });
+  if (roleError) {
+    return NextResponse.json({ error: roleError.message }, { status: 500 });
   }
 
   const staffPayload: Record<string, unknown> = { id: userId, name, phone, email };
@@ -73,4 +81,3 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ ok: true });
 }
-
