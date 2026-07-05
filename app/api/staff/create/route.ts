@@ -72,11 +72,41 @@ export async function POST(request: Request) {
   if (role === "sales") staffPayload.region = region ?? "Buruburu Phase 1";
   if (role === "sales") staffPayload.status = "active";
 
-  const { error: staffError } = await admin
-    .from(TABLE_FOR_ROLE[role])
-    .upsert(staffPayload, { onConflict: "id" });
-  if (staffError) {
-    return NextResponse.json({ error: staffError.message }, { status: 500 });
+  // Sales staff can be pre-created by an admin via "Add Staff" before they
+  // ever sign up themselves. That row has a random id with no auth account
+  // attached yet, matched only by phone number. If we blindly upsert by id
+  // here, we miss that row and try to insert a brand new one with the same
+  // phone, which fails on the unique phone constraint. So for sales, look
+  // for an existing row by phone first and claim it; only insert fresh if
+  // no pre-created row exists.
+  if (role === "sales") {
+    const { data: existingByPhone } = await admin
+      .from("sales_force")
+      .select("id")
+      .eq("phone", phone)
+      .maybeSingle();
+
+    if (existingByPhone) {
+      const { error: claimError } = await admin
+        .from("sales_force")
+        .update({ id: userId, name, email, status: "active" })
+        .eq("phone", phone);
+      if (claimError) {
+        return NextResponse.json({ error: claimError.message }, { status: 500 });
+      }
+    } else {
+      const { error: insertError } = await admin.from("sales_force").upsert(staffPayload, { onConflict: "id" });
+      if (insertError) {
+        return NextResponse.json({ error: insertError.message }, { status: 500 });
+      }
+    }
+  } else {
+    const { error: staffError } = await admin
+      .from(TABLE_FOR_ROLE[role])
+      .upsert(staffPayload, { onConflict: "id" });
+    if (staffError) {
+      return NextResponse.json({ error: staffError.message }, { status: 500 });
+    }
   }
 
   return NextResponse.json({ ok: true });
