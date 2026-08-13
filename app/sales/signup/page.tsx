@@ -34,6 +34,7 @@ export default function SalesSignup() {
 
     const { error: signInError } = await supabase.auth.signInWithPassword({ email: formData.email, password: formData.password });
     if (signInError) { alert(signInError.message); setLoading(false); return; }
+    await supabase.from("sales_force").insert([{ name: formData.name, phone: formData.phone, email: formData.email, region: formData.region, status: "active" }]);
     await supabase.from("sales_force").update({ last_login: new Date().toISOString() }).eq("email", formData.email);
 
     router.push("/sales/dashboard");
