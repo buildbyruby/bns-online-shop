@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Home, Users, MessageSquare, BarChart3, LogOut, X, Zap, Send, Edit3, Radio, AlertTriangle, Trash2, PauseCircle, PlayCircle, Package, Plus } from "lucide-react";
+import { Home, Users, MessageSquare, BarChart3, LogOut, X, Zap, Send, Edit3, Radio, AlertTriangle, Trash2, PauseCircle, PlayCircle, Package, Plus, Tag } from "lucide-react";
 
 const REGIONS = ["Buruburu Phase 5","Buruburu Phase 4","Buruburu Phase 3","Buruburu Phase 2","Buruburu Phase 1","Harambee","Outskirts"];
 
@@ -17,13 +17,22 @@ export default function AdminDashboard() {
   const [showConfirm, setShowConfirm] = useState<any>(null);
   const [showProductModal, setShowProductModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({ id: "", name: "", phone: "", area: "Buruburu Phase 1" });
-  const [productForm, setProductForm] = useState({ id: "", name: "", purchase_price: "", selling_price: "", stock: "", category_id: "", image_url: "", product_type: "B2C" });
+  const [formData, setFormData] = useState({ id: "", name: "", phone: "", area: "Buruburu Phase 1", category_ids: [] as string[] });
+  const [staffCategoryMap, setStaffCategoryMap] = useState<Record<string, string[]>>({});
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [viewingCategory, setViewingCategory] = useState<any>(null);
+  const [productForm, setProductForm] = useState({ id: "", name: "", purchase_price: "", selling_price: "", stock: "", category_id: "", image_url: "", product_type: "B2C", b2c_price: "", b2c_discount_price: "", b2b_price: "", b2b_discount_price: "" });
+  const [offers, setOffers] = useState<any[]>([]);
+  const [showOfferModal, setShowOfferModal] = useState(false);
+  const [offerForm, setOfferForm] = useState({ id: "", title: "", category_id: "", price: "", expires_at: "", image_url: "", product_ids: [] as string[], custom_prices: {} as Record<string, string> });
   const [messages, setMessages] = useState<any[]>([]);
   const [newMsg, setNewMsg] = useState("");
   const [totalMoney, setTotalMoney] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 4000); };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dmTarget, setDmTarget] = useState<any>(null);
   const [dmMessages, setDmMessages] = useState<any[]>([]);
@@ -45,7 +54,6 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (activeTab !== "Chat") return;
-    // Subscribe to ALL group messages in real time
     const sub = supabase.channel("admin-group-chat")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: "receiver_id=eq.ALL" },
         (p: any) => setMessages(prev => [...prev, p.new]))
@@ -73,15 +81,22 @@ export default function AdminDashboard() {
   }, [dmTarget]);
 
     const loadAll = async () => {
-    const [staffRes, ordersRes, custRes, prodRes, catRes, adminsRes, opRes] = await Promise.all([
+    const [staffRes, ordersRes, custRes, prodRes, catRes, adminsRes, opRes, offersRes, sfcRes] = await Promise.all([
       supabase.from("sales_force").select("*").order("created_at", { ascending: false }),
       supabase.from("orders").select("salesperson_id, total_amount"),
       supabase.from("customers").select("id", { count: "exact", head: true }),
       supabase.from("products").select("*, categories(name)").order("name"),
       supabase.from("categories").select("*").order("name"),
       supabase.from("admins").select("*").order("created_at", { ascending: false }),
-      supabase.from("order_processors").select("*").order("created_at", { ascending: false })
+      supabase.from("order_processors").select("*").order("created_at", { ascending: false }),
+      supabase.from("offers").select("*, categories(name), offer_products(product_id, custom_price)").order("created_at", { ascending: false }),
+      supabase.from("sales_force_categories").select("sales_force_id, category_id")
     ]);
+    if (sfcRes.data) {
+      const map: Record<string, string[]> = {};
+      sfcRes.data.forEach((r: any) => { map[r.sales_force_id] = [...(map[r.sales_force_id] || []), r.category_id]; });
+      setStaffCategoryMap(map);
+    }
     const allOrders = ordersRes.data || [];
     if (staffRes.data) {
       setStaffList(staffRes.data.map((s: any) => ({
@@ -90,9 +105,10 @@ export default function AdminDashboard() {
       })));
     }
     if (prodRes.data) setProducts(prodRes.data);
-    if (catRes.data) setCategories(catRes.data);
+    if (catRes.data) setCategories(catRes.data); if (catRes.error) console.error("categories load error:", catRes.error);
     if (adminsRes.data) setAdminList(adminsRes.data);
     if (opRes.data) setOrderProcessorList(opRes.data);
+    if (offersRes.data) setOffers(offersRes.data);
     setTotalMoney(allOrders.reduce((s: number, r: any) => s + (Number(r.total_amount) || 0), 0));
     setTotalCustomers(custRes.count || 0);
   };
@@ -137,14 +153,25 @@ export default function AdminDashboard() {
 
   const handleSaveStaff = async (e: any) => {
     e.preventDefault(); setSaving(true);
+    let staffId = formData.id;
     if (isEditing) { await supabase.from("sales_force").update({ name: formData.name, phone: formData.phone, region: formData.area }).eq("id", formData.id); }
-    else { await supabase.from("sales_force").insert([{ name: formData.name, phone: formData.phone, region: formData.area, status: "active" }]); }
+    else { const { data } = await supabase.from("sales_force").insert([{ name: formData.name, phone: formData.phone, region: formData.area, status: "active" }]).select().single(); staffId = data?.id; }
+    if (staffId) {
+      await supabase.from("sales_force_categories").delete().eq("sales_force_id", staffId);
+      if (formData.category_ids.length > 0) {
+        await supabase.from("sales_force_categories").insert(formData.category_ids.map(cid => ({ sales_force_id: staffId, category_id: cid })));
+      }
+    }
     await loadAll(); setShowModal(false); setSaving(false);
+  };
+
+  const toggleStaffCategory = (cid: string) => {
+    setFormData(prev => ({ ...prev, category_ids: prev.category_ids.includes(cid) ? prev.category_ids.filter(x => x !== cid) : [...prev.category_ids, cid] }));
   };
 
   const handleSaveProduct = async (e: any) => {
     e.preventDefault(); setSaving(true);
-    const payload = { name: productForm.name, price: Number(productForm.selling_price), purchase_price: Number(productForm.purchase_price), stock_quantity: Number(productForm.stock), category_id: productForm.category_id || null, image_url: productForm.image_url || null, product_type: productForm.product_type };
+    const payload = { name: productForm.name, price: Number(productForm.selling_price), purchase_price: Number(productForm.purchase_price), stock_quantity: Number(productForm.stock), category_id: productForm.category_id || null, image_url: productForm.image_url || null, product_type: productForm.product_type, b2c_price: productForm.b2c_price ? Number(productForm.b2c_price) : null, b2c_discount_price: productForm.b2c_discount_price ? Number(productForm.b2c_discount_price) : null, b2b_price: productForm.b2b_price ? Number(productForm.b2b_price) : null, b2b_discount_price: productForm.b2b_discount_price ? Number(productForm.b2b_discount_price) : null };
     if (productForm.id) { await supabase.from("products").update(payload).eq("id", productForm.id); }
     else { await supabase.from("products").insert([payload]); }
     await loadAll(); setShowProductModal(false); setSaving(false);
@@ -156,8 +183,79 @@ export default function AdminDashboard() {
     await loadAll();
   };
 
+  const handleAddCategory = async (e: any) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+    setSaving(true);
+    const { error } = await supabase.from("categories").insert([{ name: newCategoryName.trim() }]);
+    if (error) { toast("Could not add category: " + error.message); setSaving(false); return; }
+    await loadAll();
+    setNewCategoryName(""); setSaving(false);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Delete this category? Products in it will become uncategorized.")) return;
+    await supabase.from("categories").delete().eq("id", id);
+    await loadAll();
+  };
+
+  const toggleProductInCategory = async (product: any, categoryId: string) => {
+    const newCategoryId = product.category_id === categoryId ? null : categoryId;
+    setProducts(prev => prev.map(p => p.id === product.id ? { ...p, category_id: newCategoryId } : p));
+    const { error } = await supabase.from("products").update({ category_id: newCategoryId }).eq("id", product.id);
+    if (error) { toast("Could not update product: " + error.message); await loadAll(); }
+  };
+
+
+
+  const handleSaveOffer = async (e: any) => {
+    e.preventDefault(); setSaving(true);
+    const payload = { title: offerForm.title, category_id: offerForm.category_id || null, price: offerForm.price ? Number(offerForm.price) : null, expires_at: offerForm.expires_at, image_url: offerForm.image_url || null, is_active: true };
+    let offerId = offerForm.id;
+    if (offerId) { await supabase.from("offers").update(payload).eq("id", offerId); }
+    else { const { data } = await supabase.from("offers").insert([payload]).select().single(); offerId = data?.id; }
+    if (offerId) {
+      await supabase.from("offer_products").delete().eq("offer_id", offerId);
+      if (offerForm.product_ids.length > 0) {
+        await supabase.from("offer_products").insert(offerForm.product_ids.map(pid => ({ offer_id: offerId, product_id: pid, custom_price: offerForm.custom_prices[pid] ? Number(offerForm.custom_prices[pid]) : null })));
+      }
+    }
+    await loadAll(); setShowOfferModal(false); setSaving(false);
+  };
+
+  const toggleOfferProduct = (pid: string) => {
+    setOfferForm(prev => {
+      const nowSelected = !prev.product_ids.includes(pid);
+      const nextPrices = { ...prev.custom_prices };
+      if (!nowSelected) delete nextPrices[pid];
+      return { ...prev, product_ids: nowSelected ? [...prev.product_ids, pid] : prev.product_ids.filter(x => x !== pid), custom_prices: nextPrices };
+    });
+  };
+
+  const setOfferProductPrice = (pid: string, value: string) => {
+    setOfferForm(prev => ({ ...prev, custom_prices: { ...prev.custom_prices, [pid]: value } }));
+  };
+
+  const openEditOffer = (o: any) => {
+    const customPrices: Record<string, string> = {};
+    (o.offer_products || []).forEach((op: any) => { if (op.custom_price) customPrices[op.product_id] = String(op.custom_price); });
+    setOfferForm({ id: o.id, title: o.title, category_id: o.category_id || "", price: String(o.price || ""), expires_at: o.expires_at ? o.expires_at.slice(0, 16) : "", image_url: o.image_url || "", product_ids: (o.offer_products || []).map((op: any) => op.product_id), custom_prices: customPrices });
+    setShowOfferModal(true);
+  };
+
+  const handleDeleteOffer = async (id: string) => {
+    if (!confirm("Remove this offer?")) return;
+    await supabase.from("offers").delete().eq("id", id);
+    await loadAll();
+  };
+
+  const handleToggleOffer = async (o: any) => {
+    await supabase.from("offers").update({ is_active: !o.is_active }).eq("id", o.id);
+    await loadAll();
+  };
+
   const openEditProduct = (p: any) => {
-    setProductForm({ id: p.id, name: p.name, purchase_price: String(p.purchase_price || ""), selling_price: String(p.price || ""), stock: String(p.stock_quantity || ""), category_id: p.category_id || "", image_url: p.image_url || "", product_type: p.product_type || "B2C" });
+    setProductForm({ id: p.id, name: p.name, purchase_price: String(p.purchase_price || ""), selling_price: String(p.price || ""), stock: String(p.stock_quantity || ""), category_id: p.category_id || "", image_url: p.image_url || "", product_type: p.product_type || "B2C", b2c_price: String(p.b2c_price || ""), b2c_discount_price: String(p.b2c_discount_price || ""), b2b_price: String(p.b2b_price || ""), b2b_discount_price: String(p.b2b_discount_price || "") });
     setShowProductModal(true);
   };
 
@@ -190,6 +288,7 @@ export default function AdminDashboard() {
             { id: "Admins", icon: Users, label: "Admin List" },
             { id: "OrderProcessors", icon: Users, label: "Order Processors" },
             { id: "Products", icon: Package, label: "Products" },
+            { id: "Offers", icon: Tag, label: "Offers" },
             { id: "Chat", icon: MessageSquare, label: "Messages" },
             { id: "Stats", icon: BarChart3, label: "Sales Info" }
           ].map((item) => (
@@ -214,12 +313,23 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "Products" ? (
-              <button onClick={() => { setProductForm({id:"",name:"",purchase_price:"",selling_price:"",stock:"",category_id:"",image_url:"",product_type:"B2C"}); setShowProductModal(true); }}
+              <>
+                <button onClick={() => setShowCategoryModal(true)}
+                  className="bg-white/5 text-white px-4 lg:px-5 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter hover:bg-white/10 transition-all flex items-center gap-2">
+                  <Tag size={14} /> Categories
+                </button>
+                <button onClick={() => { setProductForm({id:"",name:"",purchase_price:"",selling_price:"",stock:"",category_id:"",image_url:"",product_type:"B2C",b2c_price:"",b2c_discount_price:"",b2b_price:"",b2b_discount_price:""}); setShowProductModal(true); }}
+                  className="bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter hover:scale-105 transition-transform flex items-center gap-2">
+                  <Plus size={14} /> Add Product
+                </button>
+              </>
+            ) : activeTab === "Offers" ? (
+              <button onClick={() => { setOfferForm({id:"",title:"",category_id:"",price:"",expires_at:"",image_url:"",product_ids:[],custom_prices:{}}); setShowOfferModal(true); }}
                 className="bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter hover:scale-105 transition-transform flex items-center gap-2">
-                <Plus size={14} /> Add Product
+                <Plus size={14} /> Add Offer
               </button>
             ) : activeTab !== "Chat" ? (
-              <button onClick={() => { setIsEditing(false); setFormData({id:"",name:"",phone:"",area:"Buruburu Phase 1"}); setShowModal(true); }}
+              <button onClick={() => { setIsEditing(false); setFormData({id:"",name:"",phone:"",area:"Buruburu Phase 1",category_ids:[]}); setShowModal(true); }}
                 className="bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter hover:scale-105 transition-transform flex items-center gap-2">
                 <Zap size={14} fill="black" /> Add Staff
               </button>
@@ -266,13 +376,21 @@ export default function AdminDashboard() {
                   <div className="flex justify-between items-start mb-6">
                     <div className="w-12 h-12 bg-white text-black rounded-2xl flex items-center justify-center font-black italic text-lg">{s.name?.[0]}</div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => { setFormData({id:s.id,name:s.name,phone:s.phone,area:s.region}); setIsEditing(true); setShowModal(true); }} className="p-2 bg-white/5 rounded-xl hover:bg-white hover:text-black transition-all"><Edit3 size={14}/></button>
+                      <button onClick={() => { setFormData({id:s.id,name:s.name,phone:s.phone,area:s.region,category_ids: staffCategoryMap[s.id] || []}); setIsEditing(true); setShowModal(true); }} className="p-2 bg-white/5 rounded-xl hover:bg-white hover:text-black transition-all"><Edit3 size={14}/></button>
                       <button onClick={() => setShowConfirm({ type: "suspend", staff: s })} className={`p-2 rounded-xl transition-all ${s.status === "suspended" ? "bg-amber-500/20 text-amber-500" : "bg-white/5 hover:bg-amber-500/20 hover:text-amber-500"}`}>{s.status === "suspended" ? <PlayCircle size={14}/> : <PauseCircle size={14}/>}</button>
                       <button onClick={() => setShowConfirm({ type: "remove", staff: s })} className="p-2 bg-white/5 rounded-xl hover:bg-rose-500/20 hover:text-rose-500 transition-all"><Trash2 size={14}/></button>
                     </div>
                   </div>
                   <h4 className="text-sm font-black uppercase">{s.name}</h4>
                   <div className="mt-3 space-y-1 text-[10px] text-zinc-400 font-bold uppercase"><p>{s.region}</p><p>{s.phone}</p><p>Last login: {s.last_login ? new Date(s.last_login).toLocaleString() : "Never"}</p></div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(staffCategoryMap[s.id] || []).length === 0 ? (
+                      <span className="text-[8px] font-black uppercase px-2 py-1 rounded-full bg-white/5 text-zinc-400">All Products</span>
+                    ) : (staffCategoryMap[s.id] || []).map(cid => {
+                      const cat = categories.find(c => c.id === cid);
+                      return cat ? <span key={cid} className="text-[8px] font-black uppercase px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">{cat.name}</span> : null;
+                    })}
+                  </div>
                   <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center">
                     <span className={`text-[9px] font-black uppercase ${statusColor(s.status)}`}>{s.status}</span>
                     <span className="text-[10px] font-black text-emerald-400">{fmt(s.order_total || 0)}</span>
@@ -352,7 +470,19 @@ export default function AdminDashboard() {
                         </div>
                         {p.categories?.name && <p className="text-[9px] text-zinc-400 uppercase mb-2">{p.categories.name}</p>}
                         {pp > 0 && <p className="text-[9px] text-zinc-400">Buy: KSH {pp.toLocaleString()}</p>}
-                        <p className="text-emerald-400 font-black text-xl">KSH {sp.toLocaleString()}</p>
+                        {(() => {
+                          const basePrice = p.product_type === "B2B" ? Number(p.b2b_price || 0) : Number(p.b2c_price || 0);
+                          const discPrice = p.product_type === "B2B" ? Number(p.b2b_discount_price || 0) : Number(p.b2c_discount_price || 0);
+                          if (basePrice > 0) {
+                            return discPrice > 0 ? (
+                              <div className="flex items-baseline gap-2">
+                                <p className="text-zinc-500 line-through text-xs font-bold">KSH {basePrice.toLocaleString()}</p>
+                                <p className="text-emerald-400 font-black text-xl">KSH {discPrice.toLocaleString()}</p>
+                              </div>
+                            ) : <p className="text-emerald-400 font-black text-xl">KSH {basePrice.toLocaleString()}</p>;
+                          }
+                          return <p className="text-emerald-400 font-black text-xl">KSH {sp.toLocaleString()}</p>;
+                        })()}
                         {pp > 0 && <p className={`text-[9px] font-black mt-1 ${profit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>Profit: KSH {profit.toLocaleString()} ({margin}%)</p>}
                         <p className="text-[9px] text-zinc-400 mb-4">{p.stock_quantity} in stock</p>
                         <div className="flex gap-2">
@@ -367,9 +497,43 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {activeTab === "Offers" && (
+            <div className="space-y-6">
+              {offers.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-24">
+                  <Tag size={40} className="text-zinc-800 mb-4" />
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">No offers yet</p>
+                </div>
+              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                {offers.map((o) => {
+                  const expired = new Date(o.expires_at).getTime() < Date.now();
+                  return (
+                    <div key={o.id} className={`bg-white/[0.02] border rounded-3xl overflow-hidden ${expired ? "border-rose-500/20 opacity-60" : "border-white/5"}`}>
+                      {o.image_url ? <img src={o.image_url} alt={o.title} className="w-full h-32 object-cover" /> : <div className="w-full h-32 bg-white/5 flex items-center justify-center"><Tag size={28} className="text-zinc-400" /></div>}
+                      <div className="p-5 lg:p-6">
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="text-sm font-black uppercase">{o.title}</h4>
+                          <span className={`text-[8px] font-black uppercase px-2 py-1 rounded-full ${o.is_active && !expired ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>{expired ? "Expired" : o.is_active ? "Active" : "Paused"}</span>
+                        </div>
+                        <p className="text-[9px] text-zinc-400 uppercase mb-2">{(o.offer_products || []).length} product{(o.offer_products || []).length === 1 ? "" : "s"}</p>
+                        {o.price && <p className="text-emerald-400 font-black text-xl">From KSH {Number(o.price).toLocaleString()}</p>}
+                        <p className="text-[9px] text-zinc-400 mt-2">Expires: {new Date(o.expires_at).toLocaleString()}</p>
+                        <div className="flex gap-2 mt-4">
+                          <button onClick={() => openEditOffer(o)} className="flex-1 p-3 bg-white/5 rounded-xl text-[9px] font-black uppercase hover:bg-white hover:text-black transition-all">Edit</button>
+                          <button onClick={() => handleToggleOffer(o)} className="p-3 bg-white/5 rounded-xl hover:bg-amber-500/20 hover:text-amber-400 transition-all">{o.is_active ? <PauseCircle size={14}/> : <PlayCircle size={14}/>}</button>
+                          <button onClick={() => handleDeleteOffer(o.id)} className="p-3 bg-white/5 rounded-xl hover:bg-rose-500/20 hover:text-rose-400 transition-all"><Trash2 size={14}/></button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {activeTab === "Chat" && (
             <div className="h-full flex overflow-hidden">
-              {/* Contact list sidebar */}
               <div className="w-44 lg:w-52 border-r border-white/5 flex flex-col overflow-y-auto flex-shrink-0">
                 <button onClick={() => setDmTarget(null)}
                   className={`p-4 text-left border-b border-white/5 transition-all ${!dmTarget ? "bg-white/10" : "hover:bg-white/5"}`}>
@@ -393,7 +557,6 @@ export default function AdminDashboard() {
                 ))}
               </div>
 
-              {/* Chat area */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="p-4 lg:p-6 border-b border-white/5 flex items-center gap-3 flex-shrink-0">
                   {dmTarget ? (
@@ -518,6 +681,18 @@ export default function AdminDashboard() {
               <select className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={formData.area} onChange={e => setFormData({...formData,area:e.target.value})}>
                 {REGIONS.map(r => <option key={r} className="bg-black">{r}</option>)}
               </select>
+              <div>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Product Lines (optional — leave blank to sell everything)</label>
+                <div className="max-h-40 overflow-y-auto space-y-2 bg-white/5 rounded-2xl p-3">
+                  {categories.length === 0 && <p className="text-[9px] text-zinc-400 p-2">No categories yet.</p>}
+                  {categories.map(c => (
+                    <label key={c.id} className={`flex items-center gap-3 p-2 rounded-xl cursor-pointer transition-all ${formData.category_ids.includes(c.id) ? "bg-emerald-500/20 border border-emerald-500/30" : "hover:bg-white/5"}`}>
+                      <input type="checkbox" checked={formData.category_ids.includes(c.id)} onChange={() => toggleStaffCategory(c.id)} className="w-4 h-4 accent-emerald-500 flex-shrink-0"/>
+                      <span className="text-[10px] font-bold flex-1">{c.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
               <button type="submit" disabled={saving} className="w-full bg-white text-black py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] disabled:opacity-50">{saving?"Saving...":isEditing?"Save Changes":"Add to Team"}</button>
             </form>
           </div>
@@ -545,7 +720,18 @@ export default function AdminDashboard() {
                 <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Pricing & Profit</label>
                 <div className="space-y-3">
                   <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.purchase_price} onChange={e => setProductForm({...productForm,purchase_price:e.target.value})} placeholder="Purchase Price (KSH)"/>
-                  <input type="number" required className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.selling_price} onChange={e => setProductForm({...productForm,selling_price:e.target.value})} placeholder="Selling Price (KSH)"/>
+                  <input type="number" required className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.selling_price} onChange={e => setProductForm({...productForm,selling_price:e.target.value})} placeholder="Selling Price (KSH) — fallback"/>
+                  {productForm.product_type === "B2C" ? (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.b2c_price} onChange={e => setProductForm({...productForm,b2c_price:e.target.value})} placeholder="B2C Price (KSH)"/>
+                      <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.b2c_discount_price} onChange={e => setProductForm({...productForm,b2c_discount_price:e.target.value})} placeholder="B2C Discount Price"/>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.b2b_price} onChange={e => setProductForm({...productForm,b2b_price:e.target.value})} placeholder="B2B Price (KSH)"/>
+                      <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={productForm.b2b_discount_price} onChange={e => setProductForm({...productForm,b2b_discount_price:e.target.value})} placeholder="B2B Discount Price"/>
+                    </div>
+                  )}
                   {purchasePrice > 0 && sellingPrice > 0 && (
                     <div className={`p-4 rounded-2xl border ${profitAmount >= 0 ? "bg-emerald-500/10 border-emerald-500/20" : "bg-rose-500/10 border-rose-500/20"}`}>
                       <div className="flex justify-between"><span className="text-[9px] font-black uppercase text-zinc-400">Profit</span><span className={`font-black ${profitAmount >= 0 ? "text-emerald-400" : "text-rose-400"}`}>KSH {profitAmount.toLocaleString()}</span></div>
@@ -566,6 +752,104 @@ export default function AdminDashboard() {
         </div>
       )}
 
+      {showOfferModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-md p-8 lg:p-10 rounded-[3rem] max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-8"><h2 className="text-xl font-black italic uppercase tracking-tighter">{offerForm.id?"Edit Offer":"Add Offer"}</h2><button onClick={() => setShowOfferModal(false)}><X size={24}/></button></div>
+            <form onSubmit={handleSaveOffer} className="space-y-5">
+              <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={offerForm.title} onChange={e => setOfferForm({...offerForm,title:e.target.value})} required placeholder="Offer Title (e.g. Valentine's Bundle)"/>
+              <div>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Products in this offer ({offerForm.product_ids.length} selected)</label>
+                <div className="max-h-52 overflow-y-auto space-y-2 bg-white/5 rounded-2xl p-3">
+                  {products.length === 0 && <p className="text-[9px] text-zinc-400 p-2">No products yet — add products first.</p>}
+                  {products.map(p => {
+                    const isB2B = p.product_type === "B2B";
+                    const normalPrice = isB2B ? Number(p.b2b_price || p.price || 0) : Number(p.b2c_price || p.price || 0);
+                    const isChecked = offerForm.product_ids.includes(p.id);
+                    return (
+                    <div key={p.id} className={`rounded-xl transition-all ${isChecked ? "bg-emerald-500/20 border border-emerald-500/30" : "hover:bg-white/5"}`}>
+                      <label className="flex items-center gap-3 p-3 cursor-pointer">
+                        <input type="checkbox" checked={isChecked} onChange={() => toggleOfferProduct(p.id)} className="w-4 h-4 accent-emerald-500 flex-shrink-0"/>
+                        <span className="text-[10px] font-bold flex-1">{p.name}</span>
+                        <span className="text-[9px] text-zinc-400">Normal: KSH {normalPrice.toLocaleString()}</span>
+                      </label>
+                      {isChecked && (
+                        <div className="px-3 pb-3">
+                          <input type="number" value={offerForm.custom_prices[p.id] || ""} onChange={e => setOfferProductPrice(p.id, e.target.value)}
+                            className="w-full bg-black/30 border border-white/10 rounded-xl p-2.5 text-[10px] outline-none focus:border-emerald-500"
+                            placeholder={`Banner price (optional) — defaults to KSH ${normalPrice.toLocaleString()}`}/>
+                        </div>
+                      )}
+                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={offerForm.price} onChange={e => setOfferForm({...offerForm,price:e.target.value})} placeholder="Headline Price (KSH, optional)"/>
+              <div>
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-3">Expires At</label>
+                <input type="datetime-local" required className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={offerForm.expires_at} onChange={e => setOfferForm({...offerForm,expires_at:e.target.value})}/>
+              </div>
+              <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold" value={offerForm.image_url} onChange={e => setOfferForm({...offerForm,image_url:e.target.value})} placeholder="Banner Image URL (optional)"/>
+              <button type="submit" disabled={saving} className="w-full bg-white text-black py-5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] disabled:opacity-50">{saving?"Saving...":offerForm.id?"Update Offer":"Create Offer"}</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-sm p-8 lg:p-10 rounded-[3rem] max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6"><h2 className="text-xl font-black italic uppercase tracking-tighter">Categories</h2><button onClick={() => setShowCategoryModal(false)}><X size={24}/></button></div>
+            <form onSubmit={handleAddCategory} className="flex gap-2 mb-6">
+              <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="e.g. Gas, Chocolates, Flowers" className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm"/>
+              <button type="submit" disabled={saving} className="px-5 bg-white text-black rounded-2xl text-[9px] font-black uppercase disabled:opacity-50">Add</button>
+            </form>
+            <div className="space-y-2">
+              {categories.length === 0 && <p className="text-[9px] text-zinc-400 p-2">No categories yet — add your first one above (e.g. "Gas"), then open each product and pick it from the Category dropdown.</p>}
+              {categories.map(c => {
+                const countInCategory = products.filter(p => p.category_id === c.id).length;
+                return (
+                <div key={c.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl">
+                  <button onClick={() => setViewingCategory(c)} className="flex-1 text-left flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase">{c.name}</span>
+                    <span className="text-[9px] text-zinc-400">({countInCategory} product{countInCategory===1?"":"s"})</span>
+                  </button>
+                  <button onClick={() => handleDeleteCategory(c.id)} className="p-2 bg-white/5 rounded-lg hover:bg-rose-500/20 hover:text-rose-400 transition-all"><Trash2 size={12}/></button>
+                </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingCategory && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-md p-8 lg:p-10 rounded-[3rem] max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div><h2 className="text-xl font-black italic uppercase tracking-tighter">{viewingCategory.name}</h2><p className="text-[9px] text-zinc-400 mt-1">Tick every product that belongs here</p></div>
+              <button onClick={() => setViewingCategory(null)}><X size={24}/></button>
+            </div>
+            <div className="space-y-2">
+              {products.length === 0 && <p className="text-[9px] text-zinc-400 p-2">No products yet.</p>}
+              {products.map(p => {
+                const inThisCategory = p.category_id === viewingCategory.id;
+                return (
+                  <label key={p.id} className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${inThisCategory ? "bg-emerald-500/20 border border-emerald-500/30" : "hover:bg-white/5"}`}>
+                    <input type="checkbox" checked={inThisCategory} onChange={() => toggleProductInCategory(p, viewingCategory.id)} className="w-4 h-4 accent-emerald-500 flex-shrink-0"/>
+                    <span className="text-[10px] font-bold flex-1">{p.name}</span>
+                    {p.category_id && p.category_id !== viewingCategory.id && <span className="text-[8px] text-zinc-500 uppercase">{categories.find(c => c.id === p.category_id)?.name}</span>}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
       {showConfirm && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-sm p-8 lg:p-10 rounded-[3rem]">
@@ -576,6 +860,13 @@ export default function AdminDashboard() {
               <button onClick={() => showConfirm.type==="remove"?handleRemove(showConfirm.staff):handleSuspend(showConfirm.staff)} className={`flex-1 py-4 rounded-2xl font-black text-[10px] uppercase ${showConfirm.type==="remove"?"bg-rose-500 text-white":"bg-amber-500 text-black"}`}>{showConfirm.type==="remove"?"Remove":showConfirm.staff.status==="suspended"?"Reactivate":"Suspend"}</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-[#151515] border border-white/10 text-white px-6 py-4 rounded-2xl shadow-2xl max-w-sm text-[11px] font-bold flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+          {toastMsg}
         </div>
       )}
     </div>

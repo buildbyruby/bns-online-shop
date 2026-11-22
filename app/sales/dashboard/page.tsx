@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Home, MessageSquare, LogOut, Send, UserPlus, X, Users, Edit2, Trash2, CheckCircle, Circle, ArrowLeft, ShoppingCart, Plus, Minus, Package, Copy, Check, ClipboardList } from "lucide-react";
+import { Home, MessageSquare, LogOut, Send, UserPlus, X, Users, Edit2, Trash2, CheckCircle, Circle, ArrowLeft, ShoppingCart, Plus, Minus, Package, Copy, Check, ClipboardList, Tag, Share2, AlertTriangle } from "lucide-react";
 
 export default function SalesDashboard() {
   const [activeTab, setActiveTab] = useState("Home");
@@ -18,16 +18,29 @@ export default function SalesDashboard() {
   const [newMsg, setNewMsg] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const toast = (msg: string) => { setToastMsg(msg); setTimeout(() => setToastMsg(null), 4000); };
   const [copied, setCopied] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerOrders, setCustomerOrders] = useState<any[]>([]);
   const [showOrderCart, setShowOrderCart] = useState(false);
   const [cart, setCart] = useState<any[]>([]);
+  const [orderRefillDays, setOrderRefillDays] = useState("");
   const [showInvoice, setShowInvoice] = useState<any>(null);
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [calls, setCalls] = useState<any[]>([]);
-  const [custForm, setCustForm] = useState({ id: null as any, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "" });
+  const [myCategories, setMyCategories] = useState<any[]>([]);
+  const [showMyClienteleOnly, setShowMyClienteleOnly] = useState(false);
+  const [offers, setOffers] = useState<any[]>([]);
+  const [productOfferFilter, setProductOfferFilter] = useState<{ ids: string[]; prices: Record<string, number>; title: string } | null>(null);
+  const [shareTarget, setShareTarget] = useState<any>(null);
+  const [manualSharePhone, setManualSharePhone] = useState("");
+  const [shareCustomerSearch, setShareCustomerSearch] = useState("");
+  const [mpesaRequesting, setMpesaRequesting] = useState(false);
+  const [mpesaDone, setMpesaDone] = useState(false);
+  const [mpesaPhone, setMpesaPhone] = useState("");
+  const [custForm, setCustForm] = useState({ id: null as any, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" });
   const bottomRef = useRef<any>(null);
   const dmBottomRef = useRef<any>(null);
   const [dmWithAdmin, setDmWithAdmin] = useState(false);
@@ -78,7 +91,7 @@ export default function SalesDashboard() {
       const { data: staff } = await supabase.from("sales_force").select("*").eq("email", userEmail).single();
       if (staff) {
         setCurrentStaff(staff);
-        await Promise.all([loadCustomers(), loadMessages(staff.id), loadProducts(), loadAllOrders(staff.id)]);
+        await Promise.all([loadCustomers(), loadMessages(staff.id), loadProducts(), loadAllOrders(staff.id), loadOffers(), loadMyCategories(staff.id)]);
         const ch = supabase.channel(`sales-${staff.id}-${Date.now()}`);
         ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${staff.id}` }, (p: any) => setMessages(prev => [...prev, p.new]));
         ch.on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.ALL` }, (p: any) => setMessages(prev => [...prev, p.new]));
@@ -103,6 +116,43 @@ export default function SalesDashboard() {
   const loadProducts = async () => {
     const { data } = await supabase.from("products").select("*, categories(name)").order("name");
     if (data) setProducts(data);
+  };
+
+  const loadOffers = async () => {
+    const { data } = await supabase.from("offers").select("*, categories(name), offer_products(product_id, custom_price)").eq("is_active", true).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false });
+    if (data) setOffers(data);
+  };
+
+  const loadMyCategories = async (sfId: string) => {
+    const { data } = await supabase.from("sales_force_categories").select("category_id, categories(name)").eq("sales_force_id", sfId);
+    if (data) setMyCategories(data);
+  };
+
+  const isMyClientele = (customerId: string) => {
+    if (myCategories.length === 0) return true;
+    const myCategoryIds = myCategories.map((c: any) => c.category_id);
+    const theirOrders = allOrders.filter(o => o.customer_id === customerId);
+    return theirOrders.some(o => (o.items || []).some((item: any) => {
+      const product = products.find(p => p.id === item.product_id);
+      return product && myCategoryIds.includes(product.category_id);
+    }));
+  };
+
+  const normalizePhone = (phone: string) => {
+    const digits = (phone || "").replace(/[^0-9]/g, "");
+    if (digits.startsWith("254")) return digits;
+    if (digits.startsWith("0")) return "254" + digits.slice(1);
+    if (digits.startsWith("7") || digits.startsWith("1")) return "254" + digits;
+    return digits;
+  };
+
+  const sendShareTo = (phone: string, product: any) => {
+    const priceLine = `KSH ${Number(product.effectivePrice).toLocaleString()}`;
+    const link = typeof window !== "undefined" ? `${window.location.origin}/p/${product.slug || product.id}` : "";
+    const text = `Check this out: *${product.name}*\n${priceLine}\n${link}`;
+    const number = normalizePhone(phone);
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
+    setShareTarget(null); setManualSharePhone(""); setShareCustomerSearch("");
   };
 
   const loadCustomerOrders = async (customerId: string) => {
@@ -135,12 +185,31 @@ export default function SalesDashboard() {
     const orderRef = "ORD-" + Math.random().toString(36).substr(2, 5).toUpperCase();
     const items = cart.map(i => ({ product_id: i.id, name: i.name, price: i.price, quantity: i.qty, subtotal: i.price * i.qty }));
     const { data, error } = await supabase.from("orders").insert([{ customer_id: selectedCustomer.id, salesperson_id: currentStaff.id, items, total_amount: cartTotal, status: "pending", order_ref: orderRef }]).select().single();
-    if (error) { alert("Could not place order: " + error.message); setSaving(false); return; }
+    if (error) { toast("Could not place order: " + error.message); setSaving(false); return; }
+    if (orderRefillDays.trim()) {
+      await supabase.from("customers").update({ refill_cycle_days: Number(orderRefillDays) }).eq("id", selectedCustomer.id);
+    }
     setShowOrderCart(false); setCart([]);
     await loadCustomerOrders(selectedCustomer.id);
     await loadAllOrders(currentStaff.id);
     setShowInvoice({ ...data, customer: selectedCustomer, staff: currentStaff });
+    setMpesaDone(false); setMpesaPhone(selectedCustomer.phone || "");
     setSaving(false);
+  };
+
+  const requestMpesaPayment = async (order: any) => {
+    if (!mpesaPhone.trim()) return;
+    setMpesaRequesting(true);
+    await supabase.from("mpesa_payments").insert([{
+      customer_id: order.customer?.id || null,
+      order_id: order.id || null,
+      phone: mpesaPhone.trim(),
+      amount: Number(order.total_amount),
+      status: "pending_integration",
+      requested_by: currentStaff?.id || null,
+    }]);
+    setMpesaRequesting(false);
+    setMpesaDone(true);
   };
 
   const copyInvoice = (order: any) => {
@@ -153,13 +222,13 @@ export default function SalesDashboard() {
   const handleSaveCustomer = async (e: any) => {
     e.preventDefault(); if (!authUser) return; setSaving(true);
     const address = [custForm.estate, custForm.court, custForm.house].filter(Boolean).join(", ");
-    const payload = { customer_name: custForm.customer_name, business_name: custForm.customer_name, contact_person: custForm.customer_name, phone: custForm.phone, address, type: "B2C", preferences: custForm.prefs ? { likes: custForm.prefs } : {}, created_by: authUser.id };
+    const payload = { customer_name: custForm.customer_name, business_name: custForm.customer_name, contact_person: custForm.customer_name, phone: custForm.phone, address, type: "B2C", preferences: custForm.prefs ? { likes: custForm.prefs } : {}, created_by: authUser.id, refill_cycle_days: custForm.refill_cycle_days ? Number(custForm.refill_cycle_days) : null };
     let error: any;
     if (isEditing && custForm.id) { const r = await supabase.from("customers").update(payload).eq("id", custForm.id); error = r.error; }
     else { const r = await supabase.from("customers").insert([payload]); error = r.error; }
-    if (error) { alert("Could not save: " + error.message); setSaving(false); return; }
+    if (error) { toast("Could not save: " + error.message); setSaving(false); return; }
     await loadCustomers();
-    setShowCustModal(false); setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "" }); setSaving(false);
+    setShowCustModal(false); setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" }); setSaving(false);
   };
 
   const handleDeleteCustomer = async (id: string) => {
@@ -170,7 +239,7 @@ export default function SalesDashboard() {
 
   const openEditCustomer = (c: any) => {
     const parts = (c.address||"").split(", ");
-    setCustForm({ id: c.id, customer_name: c.customer_name||"", phone: c.phone||"", estate: parts[0]||"", court: parts[1]||"", house: parts[2]||"", prefs: c.preferences?.likes||"" });
+    setCustForm({ id: c.id, customer_name: c.customer_name||"", phone: c.phone||"", estate: parts[0]||"", court: parts[1]||"", house: parts[2]||"", prefs: c.preferences?.likes||"", refill_cycle_days: c.refill_cycle_days ? String(c.refill_cycle_days) : "" });
     setIsEditing(true); setShowCustModal(true);
   };
 
@@ -220,8 +289,9 @@ export default function SalesDashboard() {
         </div>
         <nav className="flex-1 px-4 space-y-2">
           {[
-            
+            { id: "Home", icon: Home, label: "Home" },
             { id: "Customers", icon: Users, label: "My Contacts" },
+            { id: "Products", icon: Package, label: "Products" },
             { id: "Orders", icon: ClipboardList, label: "Orders" },
             { id: "Chat", icon: MessageSquare, label: "Messages" },
           ].map((item) => (
@@ -248,13 +318,13 @@ export default function SalesDashboard() {
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "Customers" && !selectedCustomer && (
-              <button onClick={() => { setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "" }); setShowCustModal(true); }}
+              <button onClick={() => { setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" }); setShowCustModal(true); }}
                 className="bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-2">
                 <UserPlus size={14} fill="black"/> Add Customer
               </button>
             )}
             {activeTab === "Customers" && selectedCustomer && (
-              <button onClick={() => { setCart([]); setShowOrderCart(true); }} className="bg-emerald-500 text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-2 hover:bg-emerald-400">
+              <button onClick={() => { setCart([]); setOrderRefillDays(selectedCustomer?.refill_cycle_days ? String(selectedCustomer.refill_cycle_days) : ""); setShowOrderCart(true); }} className="bg-emerald-500 text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-2 hover:bg-emerald-400">
                 <ShoppingCart size={14}/> Place Order
               </button>
             )}
@@ -265,6 +335,28 @@ export default function SalesDashboard() {
 
           {activeTab === "Home" && (
             <div className="space-y-6 lg:space-y-10">
+              {offers.length > 0 && (
+                <div className="space-y-4">
+                  <h4 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-400 flex items-center gap-2"><Tag size={14}/> Offers</h4>
+                  <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+                    {offers.map(o => {
+                      const hoursLeft = Math.max(0, Math.round((new Date(o.expires_at).getTime() - Date.now()) / 3600000));
+                      return (
+                        <div key={o.id} className="min-w-[240px] lg:min-w-[280px] bg-gradient-to-br from-emerald-500/20 to-white/[0.02] border border-emerald-500/20 rounded-[2rem] p-5 lg:p-6 flex-shrink-0">
+                          <p className="text-[9px] font-black uppercase text-emerald-400 tracking-widest mb-1">{o.categories?.name || "Offer"}</p>
+                          <h3 className="text-base font-black uppercase italic">{o.title}</h3>
+                          {o.price && <p className="text-emerald-400 font-black text-lg mt-1">From KSH {Number(o.price).toLocaleString()}</p>}
+                          <p className="text-[9px] text-zinc-400 mt-1">{hoursLeft > 0 ? `${hoursLeft}h left` : "Ending soon"} · {(o.offer_products||[]).length} product{(o.offer_products||[]).length===1?"":"s"}</p>
+                          <button onClick={() => { const prices: Record<string, number> = {}; (o.offer_products||[]).forEach((op: any) => { if (op.custom_price) prices[op.product_id] = Number(op.custom_price); }); setProductOfferFilter({ ids: (o.offer_products||[]).map((op: any) => op.product_id), prices, title: o.title }); setActiveTab("Products"); }}
+                            className="w-full mt-4 py-3 bg-white text-black rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-400 transition-colors">
+                            View More
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4 lg:gap-6">
                 <div className="bg-white text-black p-6 lg:p-8 rounded-[2rem] shadow-xl">
                   <p className="text-[10px] font-black uppercase mb-1">My Customers</p>
@@ -277,6 +369,38 @@ export default function SalesDashboard() {
                   <p className="text-[9px] text-zinc-400 mt-2">{todayOrders.length} today</p>
                 </div>
               </div>
+              {(() => {
+                const trackedCustomers = customers.filter(c => c.refill_cycle_days).map(c => {
+                  const customerOrdersList = allOrders.filter(o => o.customer_id === c.id);
+                  const lastOrder = customerOrdersList.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+                  if (!lastOrder) return null;
+                  const daysSince = Math.floor((Date.now() - new Date(lastOrder.created_at).getTime()) / 86400000);
+                  const cycle = c.refill_cycle_days;
+                  const percentRemaining = Math.max(0, Math.round(100 - (daysSince / cycle) * 100));
+                  const overdue = daysSince > cycle;
+                  return { customer: c, daysSince, cycle, percentRemaining, overdue };
+                }).filter(Boolean).sort((a: any, b: any) => a.percentRemaining - b.percentRemaining);
+                return trackedCustomers.length > 0 ? (
+                  <div className="bg-white/[0.02] border border-white/5 p-6 lg:p-10 rounded-[3rem]">
+                    <h4 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-400 mb-6">Refill Reminders</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {trackedCustomers.map((t: any) => (
+                        <div key={t.customer.id} className={`p-4 rounded-2xl border ${t.overdue ? "bg-rose-500/10 border-rose-500/20" : "bg-white/[0.02] border-white/5"}`}>
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-14 bg-white/10 rounded-b-xl rounded-t-md relative overflow-hidden flex-shrink-0 border border-white/10">
+                              <div className={`absolute bottom-0 left-0 right-0 ${t.overdue ? "bg-rose-500" : t.percentRemaining < 30 ? "bg-amber-500" : "bg-emerald-500"}`} style={{ height: `${t.percentRemaining}%` }} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-black uppercase truncate">{t.customer.customer_name}</p>
+                              <p className={`text-[9px] font-bold mt-1 ${t.overdue ? "text-rose-400" : "text-zinc-400"}`}>{t.overdue ? `${t.daysSince - t.cycle}d overdue` : `${t.cycle - t.daysSince}d left`}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
               {calls.length > 0 && (
                 <div className="bg-white/[0.02] border border-white/5 p-6 lg:p-10 rounded-[3rem]">
                   <h4 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-400 mb-6">Follow Up</h4>
@@ -295,8 +419,72 @@ export default function SalesDashboard() {
             </div>
           )}
 
+          {activeTab === "Products" && (
+            <div className="space-y-4">
+              {productOfferFilter && (
+                <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-4 py-3">
+                  <p className="text-[9px] font-black uppercase text-emerald-400 tracking-widest">Showing: {productOfferFilter.title}</p>
+                  <button onClick={() => setProductOfferFilter(null)} className="text-[9px] font-black uppercase text-zinc-400 hover:text-white">Clear filter ✕</button>
+                </div>
+              )}
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-6">
+                {products.filter(p => !myCategories.length || myCategories.some((c) => c.category_id === p.category_id)).filter(p => !productOfferFilter || productOfferFilter.ids.includes(p.id)).map(p => {
+                  const isB2B = p.product_type === "B2B";
+                  const normalBase = isB2B ? Number(p.b2b_price || 0) : Number(p.b2c_price || p.price || 0);
+                  const normalDisc = isB2B ? Number(p.b2b_discount_price || 0) : Number(p.b2c_discount_price || 0);
+                  const bannerPrice = productOfferFilter?.prices?.[p.id];
+                  const base = bannerPrice || normalBase;
+                  const disc = bannerPrice ? 0 : normalDisc;
+                  return (
+                    <div key={p.id} className="bg-white/[0.02] border border-white/5 rounded-3xl overflow-hidden">
+                      {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-32 lg:h-40 object-cover"/> : <div className="w-full h-32 lg:h-40 bg-white/5 flex items-center justify-center"><Package size={28} className="text-zinc-400"/></div>}
+                      <div className="p-4 lg:p-5">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-[11px] font-black uppercase">{p.name}</h4>
+                          {p.product_type && <span className={`text-[7px] font-black uppercase px-2 py-1 rounded-full flex-shrink-0 ${isB2B ? "bg-blue-500/20 text-blue-400" : "bg-emerald-500/20 text-emerald-400"}`}>{p.product_type}</span>}
+                        </div>
+                        {p.categories?.name && <p className="text-[8px] text-zinc-400 uppercase mt-1">{p.categories.name}</p>}
+                        {bannerPrice ? (
+                          <div className="flex items-baseline gap-2 mt-2">
+                            <p className="text-zinc-500 line-through text-[10px] font-bold">KSH {normalBase.toLocaleString()}</p>
+                            <p className="text-emerald-400 font-black text-base">KSH {bannerPrice.toLocaleString()}</p>
+                          </div>
+                        ) : disc > 0 ? (
+                          <div className="flex items-baseline gap-2 mt-2">
+                            <p className="text-zinc-500 line-through text-[10px] font-bold">KSH {base.toLocaleString()}</p>
+                            <p className="text-emerald-400 font-black text-base">KSH {disc.toLocaleString()}</p>
+                          </div>
+                        ) : <p className="text-emerald-400 font-black text-base mt-2">KSH {base.toLocaleString()}</p>}
+                        <button onClick={() => setShareTarget({ ...p, effectivePrice: bannerPrice || (disc > 0 ? disc : base) })} className="w-full mt-3 py-2 bg-white/5 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-500 hover:text-black transition-all flex items-center justify-center gap-1">
+                          <Share2 size={12}/> Share on WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {products.filter(p => !myCategories.length || myCategories.some((c) => c.category_id === p.category_id)).filter(p => !productOfferFilter || productOfferFilter.ids.includes(p.id)).length === 0 && (
+                <div className="flex flex-col items-center justify-center py-24">
+                  <Package size={40} className="text-zinc-800 mb-4"/>
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">No products in this offer</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "Customers" && !selectedCustomer && (
             <div className="space-y-4">
+              {myCategories.length > 0 && (
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">My product lines:</span>
+                    {myCategories.map((c: any) => <span key={c.category_id} className="text-[9px] font-black uppercase px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-full">{c.categories?.name}</span>)}
+                  </div>
+                  <button onClick={() => setShowMyClienteleOnly(!showMyClienteleOnly)} className={`text-[9px] font-black uppercase px-4 py-2 rounded-full transition-all ${showMyClienteleOnly ? "bg-white text-black" : "bg-white/5 text-zinc-400"}`}>
+                    {showMyClienteleOnly ? "Showing: My Clientele" : "Show My Clientele Only"}
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-2xl px-4 py-3">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-zinc-400 flex-shrink-0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input value={customerSearch} onChange={e => setCustomerSearch(e.target.value)} placeholder="Search by name, phone or ID..." className="bg-transparent outline-none text-sm flex-1 text-white placeholder:text-zinc-400"/>
@@ -309,12 +497,12 @@ export default function SalesDashboard() {
                 </div>
               )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
-                {filteredCustomers.map(c => (
+                {filteredCustomers.filter(c => !showMyClienteleOnly || isMyClientele(c.id)).map(c => (
                   <div key={c.id} className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-6 lg:p-8">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1 cursor-pointer" onClick={() => openCustomer(c)}>
                         <h4 className="text-lg font-black uppercase tracking-tighter italic">{c.customer_name}</h4>
-                        <p className="text-xs text-zinc-400 font-bold">{c.phone}</p>
+                        <p className="text-xs text-zinc-400 font-bold">{c.phone} {c.member_id ? `· ${c.member_id}` : ""}</p>
                         <p className="text-[10px] font-black text-emerald-500 mt-2 uppercase tracking-wide">View Orders & Place New →</p>
                       </div>
                       <div className="flex gap-2">
@@ -525,18 +713,29 @@ export default function SalesDashboard() {
             <div className="flex-1 overflow-y-auto p-4 lg:p-8">
               <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-4">Products</p>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-                {products.map(p => (
+                {products.filter(p => !myCategories.length || myCategories.some((c) => c.category_id === p.category_id)).map(p => {
+                  const isB2B = p.product_type === "B2B";
+                  const base = isB2B ? Number(p.b2b_price || 0) : Number(p.b2c_price || p.price || 0);
+                  const disc = isB2B ? Number(p.b2b_discount_price || 0) : Number(p.b2c_discount_price || 0);
+                  const effectivePrice = disc > 0 ? disc : base;
+                  return (
                   <div key={p.id} className="bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden">
                     {p.image_url ? <img src={p.image_url} alt={p.name} className="w-full h-24 lg:h-28 object-cover"/> : <div className="w-full h-24 lg:h-28 bg-white/5 flex items-center justify-center"><Package size={24} className="text-zinc-400"/></div>}
                     <div className="p-3 lg:p-4">
                       <p className="text-[10px] font-black uppercase">{p.name}</p>
-                      <p className="text-emerald-400 font-black mt-1">KSH {Number(p.price).toLocaleString()}</p>
-                      <button onClick={() => addToCart(p)} className="w-full mt-2 py-2 bg-white text-black rounded-xl text-[9px] font-black uppercase hover:bg-emerald-400 transition-colors flex items-center justify-center gap-1">
+                      {disc > 0 ? (
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <p className="text-zinc-500 line-through text-[9px] font-bold">KSH {base.toLocaleString()}</p>
+                          <p className="text-emerald-400 font-black">KSH {disc.toLocaleString()}</p>
+                        </div>
+                      ) : <p className="text-emerald-400 font-black mt-1">KSH {base.toLocaleString()}</p>}
+                      <button onClick={() => addToCart({ ...p, price: effectivePrice })} className="w-full mt-2 py-2 bg-white text-black rounded-xl text-[9px] font-black uppercase hover:bg-emerald-400 transition-colors flex items-center justify-center gap-1">
                         <Plus size={12}/> Add
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <div className="w-full lg:w-80 flex-shrink-0 border-t lg:border-t-0 lg:border-l border-white/5 flex flex-col max-h-64 lg:max-h-none">
@@ -562,6 +761,8 @@ export default function SalesDashboard() {
                 )}
               </div>
               <div className="p-4 lg:p-6 border-t border-white/5 flex-shrink-0">
+                <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Refill reminder (days) — e.g. gas cylinder cycle</label>
+                <input type="number" value={orderRefillDays} onChange={e => setOrderRefillDays(e.target.value)} placeholder="e.g. 24 (leave blank if not applicable)" className="w-full bg-white/5 border border-white/5 rounded-2xl p-3 mb-4 outline-none text-sm"/>
                 <div className="flex justify-between mb-4"><span className="text-[10px] font-black uppercase text-zinc-400">Total</span><span className="font-black text-emerald-400">KSH {cartTotal.toLocaleString()}</span></div>
                 <button onClick={processOrder} disabled={cart.length===0||saving} className="w-full bg-emerald-500 text-black py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest disabled:opacity-40">
                   {saving?"Processing...":"Process Order"}
@@ -588,7 +789,23 @@ export default function SalesDashboard() {
               <div className="border-t border-white/10 pt-3"><p className="text-emerald-400 font-black text-sm">💰 TOTAL: KSH {Number(showInvoice.total_amount).toLocaleString()}</p></div>
               <div className="border-t border-white/10 pt-3 text-zinc-400"><p>Sold by: {showInvoice.staff?.name} | {showInvoice.staff?.region}</p><p>BNS Systems</p></div>
             </div>
-            <button onClick={() => copyInvoice(showInvoice)} className="w-full mt-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-white text-black hover:scale-105 transition-transform">
+            <div className="mt-6 pt-6 border-t border-white/10">
+              {mpesaDone ? (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 text-center">
+                  <p className="text-[10px] font-black uppercase text-emerald-400">Payment request logged</p>
+                  <p className="text-[9px] text-zinc-400 mt-1">Ready for M-Pesa integration to charge {mpesaPhone}</p>
+                </div>
+              ) : (
+                <>
+                  <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Request M-Pesa payment for this order</label>
+                  <div className="flex gap-2">
+                    <input value={mpesaPhone} onChange={e => setMpesaPhone(e.target.value)} placeholder="0712345678" className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-3 outline-none text-sm"/>
+                    <button onClick={() => requestMpesaPayment(showInvoice)} disabled={mpesaRequesting} className="px-5 bg-emerald-500 text-black rounded-2xl text-[9px] font-black uppercase disabled:opacity-50">{mpesaRequesting?"...":"Request"}</button>
+                  </div>
+                </>
+              )}
+            </div>
+            <button onClick={() => copyInvoice(showInvoice)} className="w-full mt-4 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-white text-black hover:scale-105 transition-transform">
               {copied?<><Check size={14}/> Copied!</>:<><Copy size={14}/> Copy for WhatsApp</>}
             </button>
           </div>
@@ -604,7 +821,10 @@ export default function SalesDashboard() {
                 <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.customer_name} onChange={e=>setCustForm({...custForm,customer_name:e.target.value})} required placeholder="Customer full name"/>
               </div>
               <div className="col-span-2"><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Phone *</label>
-                <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.phone} onChange={e=>setCustForm({...custForm,phone:e.target.value})} required placeholder="07..."/>
+                <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.phone} onChange={e=>setCustForm({...custForm,phone:e.target.value})} required placeholder="0712345678 or +254712345678"/>
+              </div>
+              <div className="col-span-2"><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Refill Reminder (days) — e.g. gas cylinder cycle</label>
+                <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.refill_cycle_days} onChange={e=>setCustForm({...custForm,refill_cycle_days:e.target.value})} placeholder="e.g. 24 (leave blank if not applicable)"/>
               </div>
               <div><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Estate</label>
                 <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.estate} onChange={e=>setCustForm({...custForm,estate:e.target.value})} placeholder="e.g. South C"/>
@@ -623,6 +843,42 @@ export default function SalesDashboard() {
               <button type="submit" disabled={saving} className="col-span-2 bg-white text-black py-5 rounded-3xl font-black text-[11px] uppercase tracking-[0.4em] disabled:opacity-50">{saving?"Saving...":isEditing?"Update Contact":"Save Contact"}</button>
             </form>
           </div>
+        </div>
+      )}
+
+      {shareTarget && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0c0c0c] border border-white/10 w-full max-w-md p-8 lg:p-10 rounded-[3rem] max-h-[85vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <div><h2 className="text-lg font-black italic uppercase">Send on WhatsApp</h2><p className="text-[9px] text-zinc-400 mt-1">{shareTarget.name} · KSH {Number(shareTarget.effectivePrice).toLocaleString()}</p></div>
+              <button onClick={() => { setShareTarget(null); setShareCustomerSearch(""); setManualSharePhone(""); }}><X size={22}/></button>
+            </div>
+            <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">Select a customer</p>
+            <input value={shareCustomerSearch} onChange={e => setShareCustomerSearch(e.target.value)} placeholder="Search contacts..." className="w-full bg-white/5 border border-white/5 rounded-2xl p-3 mb-3 outline-none text-sm"/>
+            <div className="max-h-48 overflow-y-auto space-y-2 mb-6">
+              {customers.filter(c => !shareCustomerSearch || c.customer_name?.toLowerCase().includes(shareCustomerSearch.toLowerCase()) || c.phone?.includes(shareCustomerSearch)).map(c => (
+                <button key={c.id} onClick={() => sendShareTo(c.phone, shareTarget)} className="w-full flex items-center justify-between p-3 bg-white/5 rounded-xl hover:bg-white/10 transition-all text-left">
+                  <div><p className="text-[10px] font-black uppercase">{c.customer_name}</p><p className="text-[9px] text-zinc-400">{c.phone} {c.member_id ? `· ${c.member_id}` : ""}</p></div>
+                  <Share2 size={14} className="text-emerald-400 flex-shrink-0"/>
+                </button>
+              ))}
+              {customers.length === 0 && <p className="text-[9px] text-zinc-400 text-center py-4">No contacts yet — add one or enter a number below</p>}
+            </div>
+            <div className="border-t border-white/5 pt-5">
+              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-3">Or enter a phone number</p>
+              <div className="flex gap-2">
+                <input value={manualSharePhone} onChange={e => setManualSharePhone(e.target.value)} placeholder="0712345678" className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-3 outline-none text-sm"/>
+                <button onClick={() => manualSharePhone.trim() && sendShareTo(manualSharePhone, shareTarget)} className="px-5 bg-emerald-500 text-black rounded-2xl text-[9px] font-black uppercase">Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] bg-[#151515] border border-white/10 text-white px-6 py-4 rounded-2xl shadow-2xl max-w-sm text-[11px] font-bold flex items-center gap-3">
+          <AlertTriangle size={16} className="text-amber-400 flex-shrink-0" />
+          {toastMsg}
         </div>
       )}
     </div>
