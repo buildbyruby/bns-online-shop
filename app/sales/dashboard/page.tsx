@@ -149,7 +149,7 @@ export default function SalesDashboard() {
   const sendShareTo = (phone: string, product: any) => {
     const priceLine = `KSH ${Number(product.effectivePrice).toLocaleString()}`;
     const link = typeof window !== "undefined" ? `${window.location.origin}/p/${product.slug || product.id}` : "";
-    const text = `Check this out: *${product.name}*\n${priceLine}\n${link}`;
+    const text = `🔥 *${product.name}*\n💰 Only *${priceLine}* — Limited stock!\n\nTo place an order or for further enquiry:\nCall, Text or WhatsApp 📲\n\n${link}`;
     const number = normalizePhone(phone);
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
     setShareTarget(null); setManualSharePhone(""); setShareCustomerSearch("");
