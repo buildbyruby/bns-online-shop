@@ -83,7 +83,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <span className="text-emerald-400 font-black text-3xl">KSH {base.toLocaleString()}</span>
             )}
           </div>
-          <p className="text-[10px] text-zinc-400 mt-6">Contact your BNS sales rep to order this product.</p>
+          <a href="https://wa.me/254702216591" target="_blank" className="mt-6 flex items-center gap-2 text-emerald-400 text-sm font-bold hover:underline">📲 Order via WhatsApp: 0702216591</a>
         </div>
       </div>
     </div>

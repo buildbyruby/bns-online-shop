@@ -151,7 +151,6 @@ export default function SalesDashboard() {
     const link = typeof window !== "undefined" ? `${window.location.origin}/p/${product.slug || product.id}` : "";
     const text = `🔥 *${product.name.toUpperCase()}* 🔥
 Get yours for ONLY *${priceLine}*!
-⚠️ LIMITED STOCK AVAILABLE!
 
 🛒 Ready to order?
 For orders and enquiries, simply Call, Text or WhatsApp us!
