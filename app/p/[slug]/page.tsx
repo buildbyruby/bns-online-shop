@@ -5,7 +5,7 @@ async function getProduct(slug: string) {
   const { data } = await supabase
     .from("products")
     .select("*, categories(name)")
-    .or(`slug.eq.${slug},id.eq.${slug}`)
+    .or(`slug.eq."${slug}",id.eq."${slug}"`)
     .maybeSingle();
   return data;
 }
