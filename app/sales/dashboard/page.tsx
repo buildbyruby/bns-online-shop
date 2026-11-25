@@ -149,7 +149,18 @@ export default function SalesDashboard() {
   const sendShareTo = (phone: string, product: any) => {
     const priceLine = `KSH ${Number(product.effectivePrice).toLocaleString()}`;
     const link = typeof window !== "undefined" ? `${window.location.origin}/p/${product.slug || product.id}` : "";
-    const text = `🔥 *${product.name}*\n💰 Only *${priceLine}* — Limited stock!\n\nTo place an order or for further enquiry:\nCall, Text or WhatsApp 📲\n\n${link}`;
+    const text = `🔥 *${product.name.toUpperCase()}* 🔥
+Get yours for ONLY *${priceLine}*!
+⚠️ LIMITED STOCK AVAILABLE!
+
+🛒 Ready to order?
+For orders and enquiries, simply Call, Text or WhatsApp us!
+📲 *0702216591*
+
+🛍️ Shop now:
+${link}
+
+✅ Quality service. Great prices. Convenient shopping!`;
     const number = normalizePhone(phone);
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
     setShareTarget(null); setManualSharePhone(""); setShareCustomerSearch("");
