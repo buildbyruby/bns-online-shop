@@ -87,7 +87,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
           </div>
           {(() => {
-            const msg = encodeURIComponent(`🔥 Hi! I’d like to order *${product.name}* for *KSH ${(product.discount_price || product.price).toLocaleString()}*\n\n🛒 Product link: ${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease assist me with my order. Thank you!`);
+            const msg = encodeURIComponent(`🔥 Hi! I’d like to order *${product.name}* for *KSH ${(product.discount_price || product.price).toLocaleString()}*\n\n🛒 Product link: https://bns-online-shop.vercel.app/p/${product.slug}\n\nPlease assist me with my order. Thank you!`);
             return (
               <a
                 href={`https://wa.me/254702216591?text=${msg}`}
