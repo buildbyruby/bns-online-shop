@@ -70,7 +70,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <div className="w-full h-72 bg-white/5" />
         )}
         <div className="p-8">
-          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">BNS Systems</p>
+          <div className="flex items-center gap-2 mb-2">
+            <img src="/logo.png" alt="BNS" className="w-6 h-6 object-contain" />
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">BNS Systems</p>
+          </div>
           <h1 className="text-2xl font-black uppercase italic">{product.name}</h1>
           {product.categories?.name && <p className="text-[10px] text-zinc-400 uppercase mt-1">{product.categories.name}</p>}
           <div className="mt-4">

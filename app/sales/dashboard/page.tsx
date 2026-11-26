@@ -229,11 +229,11 @@ ${link}
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
   
-  const shareInvoice = (order: any) => {
+  const shareInvoice = (order: any, overridePhone?: string) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
     const text = `🏢 *BNS SYSTEMS*\n─────────────────────\n🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\n─────────────────────\n✅ Quality service. Great prices. Convenient shopping!`;
-    const phone = order.customer?.phone?.replace(/[^0-9]/g, "");
-    const number = phone?.startsWith("254") ? phone : phone?.startsWith("0") ? "254" + phone.slice(1) : "254" + phone;
+    const raw = (overridePhone || order.customer?.phone || "").replace(/[^0-9]/g, "");
+    const number = raw.startsWith("254") ? raw : raw.startsWith("0") ? "254" + raw.slice(1) : "254" + raw;
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -827,7 +827,7 @@ ${link}
               <button onClick={() => copyInvoice(showInvoice)} className="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-white text-black hover:scale-105 transition-transform">
                 {copied?<><Check size={14}/> Copied!</>:<><Copy size={14}/> Copy Invoice</>}
               </button>
-              <button onClick={() => shareInvoice(showInvoice)} className="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-emerald-500 text-black hover:scale-105 transition-transform">
+              <button onClick={() => { const num = prompt("Enter customer WhatsApp number:"); if(num) shareInvoice(showInvoice, num); }} className="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-emerald-500 text-black hover:scale-105 transition-transform">
                 📲 Share Invoice
               </button>
             </div>
