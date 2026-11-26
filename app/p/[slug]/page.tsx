@@ -72,7 +72,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <div className="p-8">
           <div className="flex items-center gap-2 mb-2">
             <img src="/logo.png" alt="BNS" className="w-6 h-6 object-contain" />
+            <div className="flex items-center gap-2 mb-2">
+            <img src="/logo.png" alt="BNS" className="w-6 h-6 object-contain" />
             <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">BNS Systems</p>
+          </div>
           </div>
           <h1 className="text-2xl font-black uppercase italic">{product.name}</h1>
           {product.categories?.name && <p className="text-[10px] text-zinc-400 uppercase mt-1">{product.categories.name}</p>}
@@ -86,7 +89,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <span className="text-emerald-400 font-black text-3xl">KSH {base.toLocaleString()}</span>
             )}
           </div>
-          <a href="https://wa.me/254702216591" target="_blank" className="mt-6 flex items-center gap-2 text-emerald-400 text-sm font-bold hover:underline">📲 Order via WhatsApp: 0702216591</a>
+          <a href="https://wa.me/254702216591" target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-black font-black text-sm uppercase tracking-widest hover:scale-105 transition-transform">📲 Order via WhatsApp</a>
         </div>
       </div>
     </div>
