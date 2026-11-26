@@ -40,7 +40,7 @@ export default function SalesDashboard() {
   const [mpesaRequesting, setMpesaRequesting] = useState(false);
   const [mpesaDone, setMpesaDone] = useState(false);
   const [mpesaPhone, setMpesaPhone] = useState("");
-  const [custForm, setCustForm] = useState({ id: null as any, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" });
+  const [custForm, setCustForm] = useState({ id: null as any, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "", account_type: "B2C" });
   const bottomRef = useRef<any>(null);
   const dmBottomRef = useRef<any>(null);
   const [dmWithAdmin, setDmWithAdmin] = useState(false);
@@ -224,21 +224,29 @@ ${link}
 
   const copyInvoice = (order: any) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
-    const text = `🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\nBNS Systems`;
+    const text = `🏢 *BNS SYSTEMS*\n─────────────────────\n🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\n─────────────────────\n✅ Quality service. Great prices. Convenient shopping!`;
     navigator.clipboard.writeText(text);
     setCopied(true); setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const shareInvoice = (order: any) => {
+    const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
+    const text = `🏢 *BNS SYSTEMS*\n─────────────────────\n🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\n─────────────────────\n✅ Quality service. Great prices. Convenient shopping!`;
+    const phone = order.customer?.phone?.replace(/[^0-9]/g, "");
+    const number = phone?.startsWith("254") ? phone : phone?.startsWith("0") ? "254" + phone.slice(1) : "254" + phone;
+    window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleSaveCustomer = async (e: any) => {
     e.preventDefault(); if (!authUser) return; setSaving(true);
     const address = [custForm.estate, custForm.court, custForm.house].filter(Boolean).join(", ");
-    const payload = { customer_name: custForm.customer_name, business_name: custForm.customer_name, contact_person: custForm.customer_name, phone: custForm.phone, address, type: "B2C", preferences: custForm.prefs ? { likes: custForm.prefs } : {}, created_by: authUser.id, refill_cycle_days: custForm.refill_cycle_days ? Number(custForm.refill_cycle_days) : null };
+    const payload = { customer_name: custForm.customer_name, business_name: custForm.customer_name, contact_person: custForm.customer_name, phone: custForm.phone, address, type: custForm.account_type, preferences: custForm.prefs ? { likes: custForm.prefs } : {}, created_by: authUser.id, refill_cycle_days: custForm.refill_cycle_days ? Number(custForm.refill_cycle_days) : null };
     let error: any;
     if (isEditing && custForm.id) { const r = await supabase.from("customers").update(payload).eq("id", custForm.id); error = r.error; }
     else { const r = await supabase.from("customers").insert([payload]); error = r.error; }
     if (error) { toast("Could not save: " + error.message); setSaving(false); return; }
     await loadCustomers();
-    setShowCustModal(false); setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" }); setSaving(false);
+    setShowCustModal(false); setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "", account_type: "B2C" }); setSaving(false);
   };
 
   const handleDeleteCustomer = async (id: string) => {
@@ -249,7 +257,7 @@ ${link}
 
   const openEditCustomer = (c: any) => {
     const parts = (c.address||"").split(", ");
-    setCustForm({ id: c.id, customer_name: c.customer_name||"", phone: c.phone||"", estate: parts[0]||"", court: parts[1]||"", house: parts[2]||"", prefs: c.preferences?.likes||"", refill_cycle_days: c.refill_cycle_days ? String(c.refill_cycle_days) : "" });
+    setCustForm({ id: c.id, customer_name: c.customer_name||"", phone: c.phone||"", estate: parts[0]||"", court: parts[1]||"", house: parts[2]||"", prefs: c.preferences?.likes||"", refill_cycle_days: c.refill_cycle_days ? String(c.refill_cycle_days) : "", account_type: c.type||"B2C" });
     setIsEditing(true); setShowCustModal(true);
   };
 
@@ -328,7 +336,7 @@ ${link}
           </div>
           <div className="flex items-center gap-3">
             {activeTab === "Customers" && !selectedCustomer && (
-              <button onClick={() => { setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "" }); setShowCustModal(true); }}
+              <button onClick={() => { setIsEditing(false); setCustForm({ id: null, customer_name: "", phone: "", estate: "", court: "", house: "", prefs: "", refill_cycle_days: "", account_type: "B2C" }); setShowCustModal(true); }}
                 className="bg-white text-black px-4 lg:px-6 py-2 lg:py-3 rounded-full text-[10px] font-black uppercase tracking-tighter flex items-center gap-2">
                 <UserPlus size={14} fill="black"/> Add Customer
               </button>
@@ -815,9 +823,14 @@ ${link}
                 </>
               )}
             </div>
-            <button onClick={() => copyInvoice(showInvoice)} className="w-full mt-4 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-white text-black hover:scale-105 transition-transform">
-              {copied?<><Check size={14}/> Copied!</>:<><Copy size={14}/> Copy for WhatsApp</>}
-            </button>
+            <div className="flex gap-3 mt-4">
+              <button onClick={() => copyInvoice(showInvoice)} className="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-white text-black hover:scale-105 transition-transform">
+                {copied?<><Check size={14}/> Copied!</>:<><Copy size={14}/> Copy Invoice</>}
+              </button>
+              <button onClick={() => shareInvoice(showInvoice)} className="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 bg-emerald-500 text-black hover:scale-105 transition-transform">
+                📲 Share Invoice
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -832,6 +845,12 @@ ${link}
               </div>
               <div className="col-span-2"><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Phone *</label>
                 <input className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.phone} onChange={e=>setCustForm({...custForm,phone:e.target.value})} required placeholder="0712345678 or +254712345678"/>
+              </div>
+              <div className="col-span-2"><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Account Type</label>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setCustForm({...custForm, account_type: "B2C"})} className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${custForm.account_type === "B2C" ? "bg-white text-black border-white" : "bg-white/5 text-zinc-400 border-white/10"}`}>B2C — Retail</button>
+                  <button type="button" onClick={() => setCustForm({...custForm, account_type: "B2B"})} className={`flex-1 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all ${custForm.account_type === "B2B" ? "bg-emerald-500 text-black border-emerald-500" : "bg-white/5 text-zinc-400 border-white/10"}`}>B2B — Business</button>
+                </div>
               </div>
               <div className="col-span-2"><label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest block mb-2">Refill Reminder (days) — e.g. gas cylinder cycle</label>
                 <input type="number" className="w-full bg-white/5 border border-white/5 rounded-2xl p-4 outline-none focus:border-white font-bold text-sm" value={custForm.refill_cycle_days} onChange={e=>setCustForm({...custForm,refill_cycle_days:e.target.value})} placeholder="e.g. 24 (leave blank if not applicable)"/>
