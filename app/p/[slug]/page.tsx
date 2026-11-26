@@ -86,7 +86,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <span className="text-emerald-400 font-black text-3xl">KSH {base.toLocaleString()}</span>
             )}
           </div>
-          <a href="https://wa.me/254702216591" target="_blank" rel="noopener noreferrer" className="mt-6 inline-flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-black font-black text-sm uppercase tracking-widest hover:scale-105 transition-transform">📲 Order via WhatsApp</a>
+          {(() => {
+            const msg = encodeURIComponent(`🔥 Hi! I’d like to order *${product.name}* for *KSH ${(product.discount_price || product.price).toLocaleString()}*\n\n🛒 Product link: ${typeof window !== "undefined" ? window.location.href : ""}\n\nPlease assist me with my order. Thank you!`);
+            return (
+              <a
+                href={`https://wa.me/254702216591?text=${msg}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center justify-center gap-2 w-full py-4 rounded-2xl bg-[#25D366] text-black font-black text-sm uppercase tracking-widest hover:scale-105 transition-transform"
+              >
+                📲 Order via WhatsApp
+              </a>
+            );
+          })()}
         </div>
       </div>
     </div>
