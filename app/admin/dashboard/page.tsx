@@ -171,9 +171,13 @@ export default function AdminDashboard() {
 
   const handleSaveProduct = async (e: any) => {
     e.preventDefault(); setSaving(true);
-    const payload = { name: productForm.name, price: Number(productForm.selling_price), purchase_price: Number(productForm.purchase_price), stock_quantity: Number(productForm.stock), category_id: productForm.category_id || null, image_url: productForm.image_url || null, product_type: productForm.product_type, b2c_price: productForm.b2c_price ? Number(productForm.b2c_price) : null, b2c_discount_price: productForm.b2c_discount_price ? Number(productForm.b2c_discount_price) : null, b2b_price: productForm.b2b_price ? Number(productForm.b2b_price) : null, b2b_discount_price: productForm.b2b_discount_price ? Number(productForm.b2b_discount_price) : null };
+    const payload: any = { name: productForm.name, price: Number(productForm.selling_price), purchase_price: Number(productForm.purchase_price), stock_quantity: Number(productForm.stock), category_id: productForm.category_id || null, image_url: productForm.image_url || null, product_type: productForm.product_type, b2c_price: productForm.b2c_price ? Number(productForm.b2c_price) : null, b2c_discount_price: productForm.b2c_discount_price ? Number(productForm.b2c_discount_price) : null, b2b_price: productForm.b2b_price ? Number(productForm.b2b_price) : null, b2b_discount_price: productForm.b2b_discount_price ? Number(productForm.b2b_discount_price) : null };
     if (productForm.id) { await supabase.from("products").update(payload).eq("id", productForm.id); }
-    else { await supabase.from("products").insert([payload]); }
+    else {
+      const slugBase = productForm.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      payload.slug = `${slugBase}-${Math.random().toString(36).slice(2, 10)}`;
+      await supabase.from("products").insert([payload]);
+    }
     await loadAll(); setShowProductModal(false); setSaving(false);
   };
 
