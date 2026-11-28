@@ -224,7 +224,7 @@ ${link}
 
   const copyInvoice = (order: any) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
-    const text = `🏢 *BNS SYSTEMS*
+    const text = `🏢 *BNS ONLINE*
 ─────────────
 🛍️ ORDER SUMMARY
 
@@ -247,7 +247,7 @@ Sold by: ${order.staff?.name} | ${order.staff?.region}
   
   const shareInvoice = (order: any, overridePhone?: string) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
-    const text = `🏢 *BNS SYSTEMS*
+    const text = `🏢 *BNS ONLINE*
 ─────────────
 🛍️ ORDER SUMMARY
 
@@ -837,7 +837,7 @@ Sold by: ${order.staff?.name} | ${order.staff?.region}
               </div>
               <div className="border-t border-white/10 pt-3 space-y-1">{(showInvoice.items||[]).map((item: any, i: number) => (<p key={i}>• {item.name} × {item.quantity} — KSH {(item.subtotal||item.price*item.quantity).toLocaleString()}</p>))}</div>
               <div className="border-t border-white/10 pt-3"><p className="text-emerald-400 font-black text-sm">💰 TOTAL: KSH {Number(showInvoice.total_amount).toLocaleString()}</p></div>
-              <div className="border-t border-white/10 pt-3 text-zinc-400"><p>Sold by: {showInvoice.staff?.name} | {showInvoice.staff?.region}</p><p>BNS Systems</p></div>
+              <div className="border-t border-white/10 pt-3 text-zinc-400"><p>Sold by: {showInvoice.staff?.name} | {showInvoice.staff?.region}</p><p>BNS Online</p></div>
             </div>
             <div className="mt-6 pt-6 border-t border-white/10">
               {mpesaDone ? (

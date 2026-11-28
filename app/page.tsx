@@ -9,7 +9,7 @@ export default function EntryGate() {
 
         <div className="space-y-3">
           <img src="/logo.png" alt="BNS Logo" className="mx-auto mb-2 h-14 sm:h-20 w-auto" />
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter italic uppercase">BNS Systems</h1>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter italic uppercase">BNS Online</h1>
           <p className="text-[10px] text-zinc-400 tracking-[0.4em] uppercase">Select Your Role</p>
         </div>
 

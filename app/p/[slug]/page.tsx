@@ -15,24 +15,24 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const product = await getProduct(slug);
-  if (!product) return { title: "Product not found | BNS Systems" };
+  if (!product) return { title: "Product not found | BNS Online" };
 
   const base = product.product_type === "B2B" ? Number(product.b2b_price || product.price || 0) : Number(product.b2c_price || product.price || 0);
   const disc = product.product_type === "B2B" ? Number(product.b2b_discount_price || 0) : Number(product.b2c_discount_price || 0);
   const price = disc > 0 ? disc : base;
   const priceLabel = `KSH ${price.toLocaleString()}`;
-  const description = `${priceLabel}${product.categories?.name ? ` · ${product.categories.name}` : ""} — Available at BNS Systems`;
+  const description = `${priceLabel}${product.categories?.name ? ` · ${product.categories.name}` : ""} — Available at BNS Online`;
   const image = product.image_url || `${SITE_URL}/favicon.ico`;
   const url = `${SITE_URL}/p/${product.slug || product.id}`;
 
   return {
-    title: `${product.name} — ${priceLabel} | BNS Systems`,
+    title: `${product.name} — ${priceLabel} | BNS Online`,
     description,
     openGraph: {
       title: product.name,
       description,
       url,
-      siteName: "BNS Systems",
+      siteName: "BNS Online",
       images: [{ url: image, width: 800, height: 800, alt: product.name }],
       type: "website",
     },
@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         <div className="p-8">
           <div className="flex items-center gap-2 mb-2">
             <img src="/logo.png" alt="BNS" className="w-6 h-6 object-contain" />
-            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">BNS Systems</p>
+            <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400 mb-2">BNS Online</p>
           </div>
           <h1 className="text-2xl font-black uppercase italic">{product.name}</h1>
           {product.categories?.name && <p className="text-[10px] text-zinc-400 uppercase mt-1">{product.categories.name}</p>}
