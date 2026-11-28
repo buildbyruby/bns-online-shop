@@ -224,14 +224,46 @@ ${link}
 
   const copyInvoice = (order: any) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
-    const text = `🏢 *BNS SYSTEMS*\n─────────────────────\n🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\n─────────────────────\n✅ Quality service. Great prices. Convenient shopping!`;
+    const text = `🏢 *BNS SYSTEMS*
+─────────────
+🛍️ ORDER SUMMARY
+
+📋 *Ref:* ${order.order_ref}
+📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}
+👤 *Customer:* ${order.customer?.customer_name}
+📞 *Phone:* ${order.customer?.phone}
+
+─────────────
+${lines}
+─────────────
+💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*
+
+Sold by: ${order.staff?.name} | ${order.staff?.region}
+─────────────
+✅ Quality service. Great prices. Convenient shopping!`;
     navigator.clipboard.writeText(text);
     setCopied(true); setTimeout(() => setCopied(false), 2000);
   };
   
   const shareInvoice = (order: any, overridePhone?: string) => {
     const lines = (order.items||[]).map((i: any) => `• ${i.name} × ${i.quantity}    KSH ${(i.subtotal||i.price*i.quantity).toLocaleString()}`).join("\n");
-    const text = `🏢 *BNS SYSTEMS*\n─────────────────────\n🛍️ ORDER SUMMARY\n\n📋 *Ref:* ${order.order_ref}\n📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}\n👤 *Customer:* ${order.customer?.customer_name}\n📞 *Phone:* ${order.customer?.phone}\n\n─────────────────────\n${lines}\n─────────────────────\n💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*\n\nSold by: ${order.staff?.name} | ${order.staff?.region}\n─────────────────────\n✅ Quality service. Great prices. Convenient shopping!`;
+    const text = `🏢 *BNS SYSTEMS*
+─────────────
+🛍️ ORDER SUMMARY
+
+📋 *Ref:* ${order.order_ref}
+📅 *Date:* ${new Date(order.created_at).toLocaleDateString("en-KE")}
+👤 *Customer:* ${order.customer?.customer_name}
+📞 *Phone:* ${order.customer?.phone}
+
+─────────────
+${lines}
+─────────────
+💰 *TOTAL: KSH ${Number(order.total_amount).toLocaleString()}*
+
+Sold by: ${order.staff?.name} | ${order.staff?.region}
+─────────────
+✅ Quality service. Great prices. Convenient shopping!`;
     const raw = (overridePhone || order.customer?.phone || "").replace(/[^0-9]/g, "");
     const number = raw.startsWith("254") ? raw : raw.startsWith("0") ? "254" + raw.slice(1) : "254" + raw;
     window.open(`https://wa.me/${number}?text=${encodeURIComponent(text)}`, "_blank");
